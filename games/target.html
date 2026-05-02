@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Tap the Target</title>
+  <meta name="theme-color" content="#2EB872" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Target" />
+  <link rel="apple-touch-icon" href="../icons/target-180.png" />
+  <link rel="stylesheet" href="../styles.css" />
+  <style>
+    .arena {
+      flex: 1;
+      position: relative;
+      background: radial-gradient(ellipse at center, #284f3a 0%, #122118 100%);
+      border-radius: 20px;
+      overflow: hidden;
+      touch-action: none;
+    }
+    .target {
+      position: absolute;
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fff, #2EB872 60%, #155a36);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      transform: translate(-50%, -50%) scale(0);
+      animation: pop 80ms ease-out forwards;
+      cursor: pointer;
+    }
+    .target.bad {
+      background: radial-gradient(circle at 35% 35%, #fff, #E85D75 60%, #6a2530);
+    }
+    @keyframes pop {
+      to { transform: translate(-50%, -50%) scale(1); }
+    }
+    .target.fading { transition: opacity 200ms ease, transform 200ms ease; opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    .hud { display:flex; gap: 20px; align-items:center; padding: 0 4px 10px 4px; }
+    .hud .pill { background: rgba(255,255,255,0.06); padding: 8px 14px; border-radius: 999px; font-weight: 600; }
+    .end {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.6);
+      display:flex; align-items:center; justify-content:center;
+    }
+    .end .panel { background: var(--bg-2); padding: 26px; border-radius: 18px; text-align:center; min-width: 240px; }
+  </style>
+</head>
+<body>
+  <header class="app">
+    <a class="back" href="../index.html">← Back</a>
+    <h1>🎯 Target</h1>
+    <div></div>
+  </header>
+  <main>
+    <div class="hud">
+      <div class="pill">Score <b id="score">0</b></div>
+      <div class="pill">Time <b id="time">30</b>s</div>
+      <div class="pill">Misses <b id="miss">0</b>/5</div>
+    </div>
+    <div class="arena" id="arena"></div>
+  </main>
+
+  <script>
+    const arena = document.getElementById('arena');
+    const scoreEl = document.getElementById('score');
+    const timeEl = document.getElementById('time');
+    const missEl = document.getElementById('miss');
+
+    let score = 0, miss = 0, time = 30, running = false;
+    let spawnTimer = null, tickTimer = null;
+
+    function rand(min, max) { return Math.random() * (max - min) + min; }
+
+    function spawn() {
+      if (!running) return;
+      const rect = arena.getBoundingClientRect();
+      const pad = 50;
+      const t = document.createElement('div');
+      const isBad = Math.random() < 0.18;
+      t.className = 'target' + (isBad ? ' bad' : '');
+      const x = rand(pad, rect.width - pad);
+      const y = rand(pad, rect.height - pad);
+      t.style.left = x + 'px';
+      t.style.top = y + 'px';
+
+      const lifetime = Math.max(700, 1400 - score * 25);
+      const decay = setTimeout(() => {
+        if (!t.isConnected) return;
+        if (!isBad) registerMiss();
+        t.classList.add('fading');
+        setTimeout(() => t.remove(), 220);
+      }, lifetime);
+
+      t.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        clearTimeout(decay);
+        if (isBad) {
+          registerMiss(2);
+        } else {
+          score += 1;
+          scoreEl.textContent = score;
+        }
+        t.classList.add('fading');
+        setTimeout(() => t.remove(), 200);
+      }, { passive: false });
+
+      arena.appendChild(t);
+
+      const next = Math.max(280, 900 - score * 15);
+      spawnTimer = setTimeout(spawn, next);
+    }
+
+    function registerMiss(n = 1) {
+      miss += n;
+      missEl.textContent = Math.min(miss, 5);
+      if (miss >= 5) end('Too many misses!');
+    }
+
+    function tick() {
+      time--;
+      timeEl.textContent = time;
+      if (time <= 0) end("Time's up!");
+    }
+
+    function start() {
+      score = 0; miss = 0; time = 30; running = true;
+      scoreEl.textContent = '0'; missEl.textContent = '0'; timeEl.textContent = '30';
+      arena.innerHTML = '';
+      clearTimeout(spawnTimer); clearInterval(tickTimer);
+      spawn();
+      tickTimer = setInterval(tick, 1000);
+    }
+
+    function end(msg) {
+      running = false;
+      clearTimeout(spawnTimer); clearInterval(tickTimer);
+      const overlay = document.createElement('div');
+      overlay.className = 'end';
+      overlay.innerHTML = `
+        <div class="panel">
+          <h2 style="margin-top:0">${msg}</h2>
+          <p>Score: <b>${score}</b></p>
+          <button class="primary" id="again">Play again</button>
+        </div>`;
+      arena.appendChild(overlay);
+      overlay.querySelector('#again').addEventListener('click', () => {
+        overlay.remove(); start();
+      });
+    }
+
+    // Tap empty arena = miss (encourages aim)
+    arena.addEventListener('pointerdown', (e) => {
+      if (e.target === arena && running) registerMiss();
+    });
+
+    start();
+  </script>
+</body>
+</html>

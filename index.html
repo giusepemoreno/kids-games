@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Kids Games</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#5B5BD6" />
+  <!-- iOS PWA hints -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Games" />
+  <link rel="apple-touch-icon" href="icons/launcher-180.png" />
+  <link rel="icon" href="icons/launcher-192.png" type="image/png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app">
+    <h1>🎮 Kids Games</h1>
+  </header>
+  <main>
+    <div class="tile-grid">
+      <a class="tile" href="games/memory.html" style="background: linear-gradient(160deg, #E85D75, #b03d56);">
+        <div class="glyph">🧠</div>
+        <div class="name">Memory Match</div>
+        <div class="desc">Flip cards and find matching pairs.</div>
+      </a>
+      <a class="tile" href="games/target.html" style="background: linear-gradient(160deg, #2EB872, #1f8a55);">
+        <div class="glyph">🎯</div>
+        <div class="name">Tap the Target</div>
+        <div class="desc">Tap targets before they vanish.</div>
+      </a>
+      <a class="tile" href="games/sequence.html" style="background: linear-gradient(160deg, #F2A93B, #c8821e);">
+        <div class="glyph">🎵</div>
+        <div class="name">Color Sequence</div>
+        <div class="desc">Repeat the pattern, one more each round.</div>
+      </a>
+      <a class="tile" href="games/wordle.html" style="background: linear-gradient(160deg, #3a86ff, #2657b0);">
+        <div class="glyph">📝</div>
+        <div class="name">Word Guess</div>
+        <div class="desc">Wordle-style — English, Español, Português.</div>
+      </a>
+      <a class="tile" href="games/imposter.html" style="background: linear-gradient(160deg, #ff3c3c, #6a1818);">
+        <div class="glyph">🕵️</div>
+        <div class="name">Imposter</div>
+        <div class="desc">Pass-the-iPad party game with friends.</div>
+      </a>
+    </div>
+    <p class="banner" style="margin-top: 28px;">
+      Tip: tap the share icon in Safari and choose <b>Add to Home Screen</b> to install. Works offline after the first visit.
+    </p>
+  </main>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>

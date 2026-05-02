@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Word Guess</title>
+  <meta name="theme-color" content="#3a86ff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Word" />
+  <link rel="apple-touch-icon" href="../icons/wordle-180.png" />
+  <link rel="stylesheet" href="../styles.css" />
+  <style>
+    .topbar {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .lang-tabs { display: flex; gap: 6px; background: var(--bg-2); padding: 4px; border-radius: 12px; }
+    .lang-tabs button {
+      background: transparent; color: var(--muted); border: 0;
+      padding: 8px 14px; border-radius: 9px; font-weight: 700; cursor: pointer;
+      font-size: 0.95rem;
+    }
+    .lang-tabs button.active { background: var(--accent); color: white; }
+
+    .hint-btn {
+      background: #2a2a3e;
+      color: var(--fg);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .hint-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .hint-btn .count { margin-left: 4px; }
+
+    .board {
+      display: grid; gap: 6px;
+      grid-template-rows: repeat(6, 1fr);
+      width: min(86vmin, 360px);
+      aspect-ratio: 5 / 6;
+      margin: 0 auto;
+    }
+    .row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .cell {
+      background: transparent;
+      border: 2px solid rgba(255,255,255,0.18);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: clamp(1.4rem, 6vw, 2rem);
+      font-weight: 800;
+      text-transform: uppercase;
+      transition: transform 120ms ease;
+    }
+    .cell.filled { border-color: rgba(255,255,255,0.45); transform: scale(1.05); }
+    .cell.correct { background: #2EB872; border-color: #2EB872; color: white; }
+    .cell.present { background: #F2A93B; border-color: #F2A93B; color: white; }
+    .cell.absent  { background: #4a4a5e; border-color: #4a4a5e; color: white; }
+    .cell.locked { box-shadow: 0 0 0 2px #fff7 inset; }
+    .cell.flip { animation: flip 500ms ease; }
+    @keyframes flip {
+      0%   { transform: rotateX(0); }
+      50%  { transform: rotateX(90deg); }
+      100% { transform: rotateX(0); }
+    }
+    .row.shake { animation: shake 380ms ease; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-8px); }
+      75% { transform: translateX(8px); }
+    }
+
+    .keyboard { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; }
+    .krow { display: flex; gap: 4px; justify-content: center; }
+    .key {
+      flex: 1;
+      max-width: 44px;
+      min-width: 0;
+      height: 52px;
+      background: #4a4a64;
+      color: white;
+      border: 0;
+      border-radius: 7px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-transform: uppercase;
+      padding: 0;
+    }
+    .key.wide { max-width: 72px; flex: 1.5; font-size: 0.85rem; }
+    .key:active { transform: scale(0.92); }
+    .key.correct { background: #2EB872; }
+    .key.present { background: #F2A93B; }
+    .key.absent  { background: #2a2a38; color: #777; }
+
+    .toast {
+      position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.85); color: white; padding: 10px 16px;
+      border-radius: 10px; font-weight: 600; z-index: 20;
+      pointer-events: none; opacity: 0; transition: opacity 200ms ease;
+    }
+    .toast.show { opacity: 1; }
+
+    .end-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center; z-index: 15;
+    }
+    .end-overlay .panel {
+      background: var(--bg-2); padding: 26px; border-radius: 18px;
+      text-align: center; min-width: 260px; max-width: 320px;
+    }
+    .end-overlay h2 { margin-top: 0; }
+    .end-overlay .answer { font-size: 1.6rem; font-weight: 800; letter-spacing: 4px; margin: 8px 0 16px; }
+  </style>
+</head>
+<body>
+  <header class="app">
+    <a class="back" href="../index.html">← Back</a>
+    <h1>📝 Word Guess</h1>
+    <div></div>
+  </header>
+  <main>
+    <div class="topbar">
+      <div class="lang-tabs" id="lang-tabs">
+        <button data-lang="en">EN</button>
+        <button data-lang="es">ES</button>
+        <button data-lang="pt">PT</button>
+      </div>
+      <button class="hint-btn" id="hint-btn" style="margin-left:auto;" title="">💡 <span class="count" id="hint-count">2</span></button>
+      <button class="primary" id="new-game" style="padding: 10px 16px; font-size: 0.95rem;">New word</button>
+    </div>
+    <div class="board" id="board"></div>
+    <div class="keyboard" id="keyboard"></div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ------- Word lists (5 letters, kid-safe, accents already stripped) -------
+    // Tip: add or remove words freely. Letters allowed:
+    //   en/pt: A-Z. es: A-Z plus Ñ (kept as a distinct letter).
+    const WORDS = {
+      en: [
+        "APPLE","BAKER","BEACH","BERRY","BLOCK","BLOOM","BOARD","BRAIN","BRAVE","BREAD",
+        "BRICK","BROOK","BROWN","BUDDY","CABIN","CANDY","CHAIR","CHALK","CHEER","CHILD",
+        "CLEAN","CLOCK","CLOUD","COAST","CRAFT","CRANE","CRISP","CROWN","DAISY","DANCE",
+        "DREAM","DRINK","DRIVE","EAGLE","EARTH","FAIRY","FIELD","FIRST","FLAME","FLOAT",
+        "FRAME","FRESH","FRUIT","GAMES","GIANT","GLASS","GLOBE","GRAPE","GREEN","HAPPY",
+        "HEART","HONEY","HORSE","HOTEL","HOUSE","JOLLY","JUICE","LARGE","LIGHT","LUCKY",
+        "MAGIC","MELON","MOUSE","MOVIE","MUSIC","NIGHT","OCEAN","OLIVE","OTTER","PAINT",
+        "PAPER","PARTY","PEACH","PIANO","PIZZA","PLANT","POINT","QUEEN","QUICK","QUIET",
+        "RIVER","ROBIN","ROUND","SHARK","SHINE","SHORE","SMILE","SNAIL","SNAKE","SPEED",
+        "SPELL","SPORT","STARS","STONE","STORM","STORY","SUGAR","SUNNY","SWEET","SWING",
+        "TABLE","TIGER","TODAY","TRAIN","TREES","TRUCK","UNCLE","VOICE","WATER","WAVES",
+        "WHALE","WHEAT","WHEEL","WORLD","YOUNG","ZEBRA"
+      ],
+      es: [
+        "AMIGO","ARBOL","BARCO","BLUSA","BOTAS","CAJON","CALOR","CAMPO","CARTA","CASAS",
+        "CIELO","COCHE","COLOR","CORTO","CREMA","CUEVA","DEDOS","DULCE","ENERO","FELIZ",
+        "FIRME","FRESA","FRUTA","FUEGO","GANSO","GATOS","GLOBO","GORDO","GORRA","HIELO",
+        "HOJAS","HORNO","JOVEN","JUEGO","JUGAR","LARGO","LECHE","LIBRO","LIMON","LLENO",
+        "LLAVE","LOBOS","LUGAR","LUNAR","MAGIA","MANOS","MARES","MESAS","MIRAR","MUNDO",
+        "NEGRO","NIEVE","NIÑOS","NOCHE","NUEVO","OSITO","OTROS","PADRE","PALMA","PAPEL",
+        "PATIO","PERRO","PIANO","PINOS","PLATO","PLAYA","POLLO","PRADO","QUESO","RAMAS",
+        "RATAS","REINO","RELOJ","RICOS","RISAS","ROCAS","ROJOS","ROPAS","ROSAS","RUEDA",
+        "SALSA","SALTO","SERIO","SIETE","SIGLO","SILLA","SUEÑO","TARDE","TIGRE","TIZAS",
+        "TOMAR","TORRE","TOROS","TUNEL","VACAS","VERDE","VIDEO","VINOS","ZONAS","ZUMOS"
+      ],
+      pt: [
+        "AMIGO","ANJOS","BANCO","BARCO","BEIJO","BICHO","BLUSA","BOLAS","BOLOS","BRACO",
+        "BURRO","CAIXA","CAMPO","CARRO","CASAS","CHAVE","CHEFE","CHUVA","CINCO","CIRCO",
+        "COBRA","COMER","CORDA","COROA","CRIAR","DEDOS","DENTE","DOCES","DUNAS","ERVAS",
+        "FACAS","FALAR","FAROL","FAVOR","FELIZ","FERRO","FESTA","FICAR","FILHO","FINAL",
+        "FOGAO","FOLHA","FORTE","FRACO","FRUTA","GANSO","GATOS","GELOS","GENTE","GIRAR",
+        "GLOBO","GORDO","GORRO","GOSTO","GRADE","HAVER","HORAS","IDEIA","JOVEM","JUNTO",
+        "LACOS","LADOS","LARGO","LEITE","LIMAO","LIMPO","LINDO","LIVRO","LOBOS","LOJAS",
+        "LONGO","LUGAR","LUVAS","LUZES","MACAS","MAGIA","MAIOR","MAPAS","MARES","MEIAS",
+        "MELAO","MENTE","MESAS","METAL","METRO","MUDAR","MUITO","MUNDO","NADAR","NAVIO",
+        "NOITE","NOSSA","NOTAS","NOVAS","NOVOS","NUVEM","OLHOS","OMBRO","OUTRO","PAPAI",
+        "PAPEL","PARTE","PASTA","PATAS","PEDIR","PERTO","PIANO","PINGO","PINTA","PISTA",
+        "PLACA","PLANO","PORTA","POUCO","PRAIA","PRATA","PRATO","PRETO","RADIO","RAIVA",
+        "RAMOS","RATOS","REINO","RIMAS","RIVAL","ROCHA","RODAS","ROSAS","ROUPA","SABER",
+        "SAPOS","SELOS","SENHA","SETAS","SONHO","SOPAS","SUAVE","SUBIR","SUSTO","TACOS",
+        "TARDE","TELAS","TEMPO","TENDA","TERMO","TERNO","TERRA","TESTE","TEXTO","TIGRE",
+        "TODOS","TOMAR","TOTAL","TRIGO","TROCA","TURMA","VAGAS","VALES","VALOR","VAPOR",
+        "VEIAS","VELAS","VELHA","VELHO","VENDA","VENTO","VERDE","VERSO","VEZES","VIDRO",
+        "VIGIA","VIGOR","VINHO","VIOLA","VIRAR","VISTA","VISTO","VIVOS","VOLTA","VOTAR",
+        "VOZES","ZONAS","ZUMBI"
+      ],
+    };
+
+    // SOMBRA is 6 letters — guard against accidental non-5 entries.
+    for (const k of Object.keys(WORDS)) {
+      WORDS[k] = WORDS[k].filter((w) => w.length === 5);
+    }
+
+    // ------- Keyboard layouts -------
+    const LAYOUTS = {
+      en: [["Q","W","E","R","T","Y","U","I","O","P"],
+           ["A","S","D","F","G","H","J","K","L"],
+           ["ENTER","Z","X","C","V","B","N","M","BACK"]],
+      es: [["Q","W","E","R","T","Y","U","I","O","P"],
+           ["A","S","D","F","G","H","J","K","L","Ñ"],
+           ["ENTER","Z","X","C","V","B","N","M","BACK"]],
+      pt: [["Q","W","E","R","T","Y","U","I","O","P"],
+           ["A","S","D","F","G","H","J","K","L"],
+           ["ENTER","Z","X","C","V","B","N","M","BACK"]],
+    };
+
+    const STRINGS = {
+      en: { notInList: "Not in word list", winTitles: ["Brilliant!","Magnificent!","Impressive!","Splendid!","Great!","Phew!"], lose: "Better luck next time!", answerWas: "The word was", playAgain: "Play again", hintRevealed: "💡 Letter revealed", hintLocked: "💡 Hints unlock on guess 3 and 5" },
+      es: { notInList: "No está en la lista", winTitles: ["¡Increíble!","¡Genial!","¡Bien hecho!","¡Estupendo!","¡Bravo!","¡Por poco!"], lose: "¡Suerte la próxima!", answerWas: "La palabra era", playAgain: "Jugar otra vez", hintRevealed: "💡 Letra revelada", hintLocked: "💡 Pistas en el intento 3 o 5" },
+      pt: { notInList: "Não está na lista", winTitles: ["Brilhante!","Incrível!","Muito bem!","Esplêndido!","Boa!","Por pouco!"], lose: "Mais sorte na próxima!", answerWas: "A palavra era", playAgain: "Jogar de novo", hintRevealed: "💡 Letra revelada", hintLocked: "💡 Dicas na tentativa 3 ou 5" },
+    };
+
+    const HINT_ROWS = new Set([2, 4]); // 3rd and 5th guesses (0-indexed)
+    const TOTAL_HINTS = 2;
+
+    // ------- Game state -------
+    const $ = (id) => document.getElementById(id);
+    const board = $('board');
+    const keyboardEl = $('keyboard');
+    const toast = $('toast');
+    const tabsEl = $('lang-tabs');
+
+    const ROWS = 6, COLS = 5;
+    let lang = localStorage.getItem('wordle-lang') || 'en';
+    let answer = '';
+    let currentRow = 0;
+    // Length-COLS array of letters or null. Locked positions (from hints) are
+    // tracked separately so typing/backspace can skip them.
+    let currentRowLetters = [];
+    let lockedRow = new Set();
+    let revealedPositions = new Set(); // positions revealed (correct) in past guesses
+    let hintsLeft = TOTAL_HINTS;
+    let gameOver = false;
+    let cellEls = []; // [row][col]
+    let keyEls = {};  // letter -> button
+
+    function pickAnswer() {
+      const list = WORDS[lang];
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function buildBoard() {
+      board.innerHTML = '';
+      cellEls = [];
+      for (let r = 0; r < ROWS; r++) {
+        const row = document.createElement('div');
+        row.className = 'row';
+        const rowCells = [];
+        for (let c = 0; c < COLS; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          row.appendChild(cell);
+          rowCells.push(cell);
+        }
+        board.appendChild(row);
+        cellEls.push(rowCells);
+      }
+    }
+
+    function buildKeyboard() {
+      keyboardEl.innerHTML = '';
+      keyEls = {};
+      const layout = LAYOUTS[lang];
+      for (const row of layout) {
+        const krow = document.createElement('div');
+        krow.className = 'krow';
+        for (const k of row) {
+          const btn = document.createElement('button');
+          btn.className = 'key';
+          if (k === 'ENTER' || k === 'BACK') btn.classList.add('wide');
+          btn.textContent = k === 'BACK' ? '⌫' : k === 'ENTER' ? '↵' : k;
+          btn.dataset.key = k;
+          btn.addEventListener('click', () => onKey(k));
+          krow.appendChild(btn);
+          if (k.length === 1) keyEls[k] = btn;
+        }
+        keyboardEl.appendChild(krow);
+      }
+    }
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toast.classList.remove('show'), 1400);
+    }
+
+    function isLetter(k) {
+      // A single uppercase character; letters match A-Z plus Ñ for ES.
+      if (k.length !== 1) return false;
+      const code = k.charCodeAt(0);
+      if (code >= 65 && code <= 90) return true;
+      if (lang === 'es' && k === 'Ñ') return true;
+      return false;
+    }
+
+    function onKey(k) {
+      if (gameOver) return;
+      if (k === 'BACK') {
+        // Clear the rightmost typed (non-locked) cell.
+        for (let i = COLS - 1; i >= 0; i--) {
+          if (currentRowLetters[i] && !lockedRow.has(i)) {
+            currentRowLetters[i] = null;
+            const cell = cellEls[currentRow][i];
+            cell.textContent = '';
+            cell.classList.remove('filled');
+            return;
+          }
+        }
+        return;
+      }
+      if (k === 'ENTER') {
+        submitGuess();
+        return;
+      }
+      if (!isLetter(k)) return;
+      // Place at leftmost empty non-locked position.
+      for (let i = 0; i < COLS; i++) {
+        if (!currentRowLetters[i] && !lockedRow.has(i)) {
+          currentRowLetters[i] = k;
+          const cell = cellEls[currentRow][i];
+          cell.textContent = k;
+          cell.classList.add('filled');
+          return;
+        }
+      }
+    }
+
+    function submitGuess() {
+      // All 5 positions must be filled (locked + typed).
+      for (let i = 0; i < COLS; i++) {
+        if (!currentRowLetters[i]) { shakeRow(); return; }
+      }
+      const guess = currentRowLetters.join('');
+      const result = scoreGuess(guess, answer);
+      animateRow(currentRow, guess, result);
+
+      // Track which positions are now permanently revealed (so future hints
+      // don't waste a reveal on a spot the player already nailed).
+      result.forEach((s, i) => { if (s === 'correct') revealedPositions.add(i); });
+
+      const won = result.every((s) => s === 'correct');
+      if (won) {
+        gameOver = true;
+        setTimeout(() => showEnd(true), COLS * 300 + 200);
+      } else if (currentRow === ROWS - 1) {
+        gameOver = true;
+        setTimeout(() => showEnd(false), COLS * 300 + 200);
+      } else {
+        currentRow++;
+        currentRowLetters = new Array(COLS).fill(null);
+        lockedRow = new Set();
+        updateHintButton();
+      }
+    }
+
+    function useHint() {
+      const s = STRINGS[lang];
+      if (gameOver) return;
+      if (!HINT_ROWS.has(currentRow)) { showToast(s.hintLocked); return; }
+      if (hintsLeft <= 0) return;
+      // Candidate positions: never revealed in a past guess and not already
+      // hinted in this row.
+      const candidates = [];
+      for (let i = 0; i < COLS; i++) {
+        if (!revealedPositions.has(i) && !lockedRow.has(i)) candidates.push(i);
+      }
+      if (candidates.length === 0) return; // unlikely (would mean game is won)
+      const pos = candidates[Math.floor(Math.random() * candidates.length)];
+      const letter = answer[pos];
+      currentRowLetters[pos] = letter;
+      lockedRow.add(pos);
+      const cell = cellEls[currentRow][pos];
+      cell.textContent = letter;
+      cell.classList.remove('filled');
+      cell.classList.add('correct', 'locked');
+      hintsLeft--;
+      updateHintButton();
+      showToast(s.hintRevealed);
+    }
+
+    function updateHintButton() {
+      const btn = document.getElementById('hint-btn');
+      const count = document.getElementById('hint-count');
+      count.textContent = hintsLeft;
+      const usable = !gameOver && hintsLeft > 0 && HINT_ROWS.has(currentRow);
+      btn.disabled = hintsLeft <= 0 || gameOver;
+      // Keep clickable when locked-by-round so we can show a helpful toast.
+      btn.style.opacity = usable ? '1' : '0.55';
+    }
+
+    // Wordle scoring: greens first, then yellows accounting for letter counts.
+    function scoreGuess(guess, target) {
+      const result = new Array(COLS).fill('absent');
+      const targetLetters = target.split('');
+      const remaining = {};
+      for (let i = 0; i < COLS; i++) {
+        if (guess[i] === targetLetters[i]) {
+          result[i] = 'correct';
+        } else {
+          remaining[targetLetters[i]] = (remaining[targetLetters[i]] || 0) + 1;
+        }
+      }
+      for (let i = 0; i < COLS; i++) {
+        if (result[i] === 'correct') continue;
+        const g = guess[i];
+        if (remaining[g]) {
+          result[i] = 'present';
+          remaining[g]--;
+        }
+      }
+      return result;
+    }
+
+    function animateRow(rowIdx, guess, result) {
+      const cells = cellEls[rowIdx];
+      cells.forEach((cell, i) => {
+        setTimeout(() => {
+          cell.classList.add('flip');
+          setTimeout(() => {
+            cell.classList.add(result[i]);
+            cell.classList.remove('filled');
+          }, 250);
+          setTimeout(() => cell.classList.remove('flip'), 500);
+          // Update keyboard color (best state wins)
+          updateKeyState(guess[i], result[i]);
+        }, i * 280);
+      });
+    }
+
+    function updateKeyState(letter, state) {
+      const btn = keyEls[letter];
+      if (!btn) return;
+      const order = { absent: 0, present: 1, correct: 2 };
+      const current = btn.dataset.state || 'none';
+      if (current === 'none' || order[state] > (order[current] ?? -1)) {
+        btn.classList.remove('absent','present','correct');
+        btn.classList.add(state);
+        btn.dataset.state = state;
+      }
+    }
+
+    function shakeRow() {
+      const row = board.children[currentRow];
+      row.classList.add('shake');
+      setTimeout(() => row.classList.remove('shake'), 400);
+    }
+
+    function showEnd(won) {
+      const s = STRINGS[lang];
+      const overlay = document.createElement('div');
+      overlay.className = 'end-overlay';
+      const title = won ? s.winTitles[currentRow] : s.lose;
+      overlay.innerHTML = `
+        <div class="panel">
+          <h2>${won ? '🎉 ' : '🙈 '}${title}</h2>
+          ${won ? '' : `<div>${s.answerWas}</div><div class="answer">${answer}</div>`}
+          <button class="primary" id="again">${s.playAgain}</button>
+        </div>`;
+      document.body.appendChild(overlay);
+      overlay.querySelector('#again').addEventListener('click', () => {
+        overlay.remove();
+        startGame();
+      });
+    }
+
+    function setLang(newLang) {
+      lang = newLang;
+      localStorage.setItem('wordle-lang', lang);
+      [...tabsEl.querySelectorAll('button')].forEach((b) => {
+        b.classList.toggle('active', b.dataset.lang === lang);
+      });
+      startGame();
+    }
+
+    function startGame() {
+      answer = pickAnswer();
+      currentRow = 0;
+      currentRowLetters = new Array(COLS).fill(null);
+      lockedRow = new Set();
+      revealedPositions = new Set();
+      hintsLeft = TOTAL_HINTS;
+      gameOver = false;
+      buildBoard();
+      buildKeyboard();
+      updateHintButton();
+      // Remove any leftover end overlay (e.g. when switching language mid-game).
+      document.querySelectorAll('.end-overlay').forEach((n) => n.remove());
+    }
+
+    // ------- Wire up -------
+    tabsEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-lang]');
+      if (btn) setLang(btn.dataset.lang);
+    });
+    $('new-game').addEventListener('click', startGame);
+    $('hint-btn').addEventListener('click', useHint);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') return onKey('ENTER');
+      if (e.key === 'Backspace') return onKey('BACK');
+      const k = e.key.toUpperCase();
+      if (k.length === 1) onKey(k);
+    });
+
+    setLang(lang); // initial render + activates correct tab
+  </script>
+</body>
+</html>

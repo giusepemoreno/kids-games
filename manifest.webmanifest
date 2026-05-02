@@ -1,0 +1,16 @@
+{
+  "name": "Kids Games",
+  "short_name": "Games",
+  "description": "A small offline collection of ad-free minigames.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#1a1a2e",
+  "theme_color": "#5B5BD6",
+  "icons": [
+    { "src": "icons/launcher-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/launcher-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/launcher-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

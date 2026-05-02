@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Imposter">
+<meta name="theme-color" content="#0a0a0a">
+<title>Imposter</title>
+<link rel="apple-touch-icon" href="../icons/imposter-180.png">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: #0a0a0a;
+    color: #fff;
+    font-family: 'Share Tech Mono', monospace;
+    overflow: hidden;
+    overscroll-behavior: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .game-root {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, #1a1a1a 0%, #0a0a0a 70%);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,200,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,200,255,0.03) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+  }
+  .scanline {
+    position: absolute;
+    left: 0; right: 0;
+    height: 80px;
+    background: linear-gradient(to bottom, transparent, rgba(0,200,255,0.04), transparent);
+    pointer-events: none;
+    animation: scanline 8s linear infinite;
+  }
+
+  .content {
+    position: relative;
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Back-to-launcher link, top-left corner. Matches other games. */
+  .launcher-back {
+    position: absolute;
+    top: calc(env(safe-area-inset-top) + 14px);
+    left: 14px;
+    z-index: 5;
+    color: rgba(0,200,255,0.7);
+    text-decoration: none;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    padding: 8px 12px;
+    border: 1px solid rgba(0,200,255,0.25);
+    background: rgba(0,200,255,0.05);
+  }
+  .launcher-back:active { background: rgba(0,200,255,0.12); }
+
+  @keyframes scanline {
+    0% { transform: translateY(-100px); }
+    100% { transform: translateY(100vh); }
+  }
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(255,60,60,0.4); }
+    70% { box-shadow: 0 0 0 20px rgba(255,60,60,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,60,60,0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes flicker {
+    0%, 95%, 100% { opacity: 1; }
+    96% { opacity: 0.4; }
+    97% { opacity: 1; }
+    98% { opacity: 0.2; }
+    99% { opacity: 1; }
+  }
+  @keyframes revealCard {
+    0% { transform: rotateY(90deg) scale(0.8); opacity: 0; }
+    100% { transform: rotateY(0) scale(1); opacity: 1; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+
+  .screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 4px;
+    max-width: 600px;
+    width: 100%;
+    margin: 0 auto;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .ops-header {
+    text-align: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(0,200,255,0.15);
+  }
+  .ops-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: rgba(0,200,255,0.6);
+    letter-spacing: 0.4em;
+    margin-bottom: 8px;
+  }
+  .ops-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.4rem, 9vw, 3.5rem);
+    letter-spacing: 0.18em;
+    color: #fff;
+    text-shadow: 0 0 30px rgba(255,60,60,0.4);
+    line-height: 1;
+    animation: flicker 6s infinite;
+  }
+  .ops-title .accent { color: #ff3c3c; }
+  .ops-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.2em;
+    margin-top: 8px;
+  }
+
+  .btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.18em;
+    padding: 14px 24px;
+    border: 1px solid;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    border-color: #ff3c3c;
+    color: #ff3c3c;
+    background: rgba(255,60,60,0.05);
+    box-shadow: 0 0 20px rgba(255,60,60,0.15);
+  }
+  .btn-primary:active { background: rgba(255,60,60,0.15); }
+  .btn-ghost { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); }
+  .btn-ghost:active { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.4); }
+  .btn-cyan {
+    border-color: #00c8ff;
+    color: #00c8ff;
+    background: rgba(0,200,255,0.05);
+  }
+  .btn-cyan:active { background: rgba(0,200,255,0.15); }
+
+  .home-card {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .home-card .big-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3.5rem, 14vw, 6rem);
+    letter-spacing: 0.15em;
+    line-height: 0.95;
+    color: #fff;
+    text-shadow: 0 0 30px rgba(255,60,60,0.5);
+  }
+  .home-card .big-title .red { color: #ff3c3c; }
+  .home-card .tagline {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.25em;
+    margin: 18px 0 36px;
+  }
+  .home-card .description {
+    color: rgba(255,255,255,0.6);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    max-width: 380px;
+    margin: 0 auto 36px;
+    text-align: left;
+    border-left: 2px solid rgba(0,200,255,0.3);
+    padding-left: 16px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .text-input {
+    flex: 1;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #fff;
+    padding: 12px 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+  }
+  .text-input:focus {
+    outline: none;
+    border-color: rgba(0,200,255,0.5);
+    background: rgba(0,200,255,0.05);
+  }
+
+  .player-list {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .player-pill {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+  }
+  .player-pill .num {
+    color: rgba(0,200,255,0.5);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    margin-right: 12px;
+  }
+  .player-pill .name { color: #fff; flex: 1; }
+  .remove-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255,60,60,0.6);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px 8px;
+  }
+
+  .section-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.25em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 8px;
+    width: fit-content;
+  }
+  .stepper button {
+    width: 36px;
+    height: 36px;
+    background: rgba(255,60,60,0.1);
+    border: 1px solid rgba(255,60,60,0.3);
+    color: #ff6b6b;
+    font-size: 1.1rem;
+    cursor: pointer;
+    font-family: 'Bebas Neue', sans-serif;
+  }
+  .stepper button:disabled { opacity: 0.3; cursor: not-allowed; }
+  .stepper .val {
+    min-width: 30px;
+    text-align: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    color: #fff;
+  }
+
+  .toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: rgba(0,200,255,0.04);
+    border: 1px solid rgba(0,200,255,0.2);
+    margin-bottom: 16px;
+    cursor: pointer;
+  }
+  .toggle .label-text {
+    font-family: 'Share Tech Mono', monospace;
+    color: #fff;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+  }
+  .toggle .desc {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.4);
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+  }
+  .switch {
+    width: 42px;
+    height: 22px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 11px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .switch.on { background: #ff3c3c; }
+  .switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .switch.on::after { transform: translateX(20px); }
+
+  .reveal-card {
+    background: linear-gradient(180deg, rgba(0,200,255,0.06), rgba(0,200,255,0.02));
+    border: 2px solid rgba(0,200,255,0.3);
+    padding: 32px 24px;
+    text-align: center;
+    position: relative;
+    animation: revealCard 0.5s ease;
+    box-shadow: 0 0 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(0,200,255,0.1);
+    margin: 16px 0;
+  }
+  .reveal-card.imposter {
+    border-color: rgba(255,60,60,0.4);
+    background: linear-gradient(180deg, rgba(255,60,60,0.08), rgba(255,60,60,0.02));
+    box-shadow: 0 0 40px rgba(0,0,0,0.6), 0 0 30px rgba(255,60,60,0.2);
+  }
+  .role-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+  .badge-crew { background: rgba(0,200,255,0.1); color: #00c8ff; border: 1px solid rgba(0,200,255,0.3); }
+  .badge-imposter { background: rgba(255,60,60,0.1); color: #ff3c3c; border: 1px solid rgba(255,60,60,0.3); }
+  .word-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 9vw, 4rem);
+    letter-spacing: 0.1em;
+    line-height: 1.1;
+    margin: 12px 0;
+  }
+  .word-crew { color: #fff; text-shadow: 0 0 20px rgba(0,200,255,0.4); }
+  .word-imposter { color: #ff6b6b; text-shadow: 0 0 20px rgba(255,60,60,0.5); animation: float 3s ease-in-out infinite; }
+  .word-blind { color: #ff6b6b; opacity: 0.5; }
+  .corner-mark {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-color: rgba(0,200,255,0.4);
+    border-style: solid;
+  }
+  .reveal-card.imposter .corner-mark { border-color: rgba(255,60,60,0.4); }
+  .corner-mark.tl { top: 8px; left: 8px; border-width: 1px 0 0 1px; }
+  .corner-mark.tr { top: 8px; right: 8px; border-width: 1px 1px 0 0; }
+  .corner-mark.bl { bottom: 8px; left: 8px; border-width: 0 0 1px 1px; }
+  .corner-mark.br { bottom: 8px; right: 8px; border-width: 0 1px 1px 0; }
+
+  .player-name-big {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 0.1em;
+    color: #fff;
+    margin-top: 12px;
+  }
+  .player-counter {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.2em;
+  }
+  .progress-bar {
+    height: 3px;
+    background: rgba(255,255,255,0.05);
+    margin: 16px 0 24px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff3c3c, #ff8c00);
+    transition: width 0.3s ease;
+  }
+  .reveal-instructions {
+    color: rgba(255,255,255,0.6);
+    font-size: 0.8rem;
+    margin: 16px 0;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  .vote-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin: 20px 0;
+  }
+  .vote-btn {
+    padding: 18px 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #fff;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+  .vote-btn:active {
+    background: rgba(255,60,60,0.1);
+    border-color: #ff3c3c;
+    transform: scale(0.97);
+  }
+
+  .stat-box {
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 8px;
+  }
+  .stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    color: #fff;
+    letter-spacing: 0.08em;
+  }
+  .stat-val.cyan { color: #00c8ff; }
+  .stat-val.red { color: #ff6b6b; }
+
+  .button-stack {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="game-root">
+  <div class="bg-grid"></div>
+  <div class="scanline"></div>
+  <a class="launcher-back" id="launcherBack" href="../index.html">← EXIT</a>
+  <div class="content" id="content"></div>
+</div>
+
+<script>
+const WORD_PAIRS = [
+  // Food & Drink
+  ["Pizza","Calzone"],["Coffee","Tea"],["Sushi","Tacos"],["Chocolate","Vanilla"],
+  ["Burger","Sandwich"],["Pasta","Noodles"],["Ice Cream","Yogurt"],["Cake","Pie"],
+  ["Apple","Pear"],["Lemon","Lime"],["Soup","Stew"],["Rice","Quinoa"],
+  ["Bread","Tortilla"],["Cheese","Butter"],["Steak","Roast"],["Beer","Wine"],
+  ["Cookie","Brownie"],["Donut","Bagel"],["Salad","Bowl"],["Pancake","Waffle"],
+  // Animals
+  ["Dog","Cat"],["Lion","Tiger"],["Vampire","Werewolf"],["Eagle","Hawk"],
+  ["Whale","Shark"],["Cow","Bull"],["Frog","Toad"],["Mouse","Rat"],
+  ["Rabbit","Hare"],["Crocodile","Alligator"],["Butterfly","Moth"],
+  ["Goat","Sheep"],["Horse","Donkey"],["Monkey","Ape"],["Penguin","Puffin"],
+  // Places
+  ["Beach","Lake"],["Castle","Mansion"],["Paris","London"],["Jungle","Desert"],
+  ["Mountain","Hill"],["Forest","Woods"],["School","College"],["Library","Bookstore"],
+  ["Hospital","Clinic"],["Park","Garden"],["Museum","Gallery"],["Restaurant","Cafe"],
+  ["Hotel","Hostel"],["Airport","Train Station"],["Beach","Pool"],
+  // Sports & Activities
+  ["Soccer","Basketball"],["Swimming","Running"],["Tennis","Badminton"],
+  ["Skiing","Snowboarding"],["Surfing","Sailing"],["Boxing","Wrestling"],
+  ["Golf","Mini Golf"],["Hiking","Camping"],["Cycling","Skating"],
+  ["Yoga","Pilates"],["Karate","Judo"],["Baseball","Cricket"],
+  ["Volleyball","Handball"],["Hockey","Lacrosse"],
+  // Entertainment & Media
+  ["Movie","TV Show"],["Book","Magazine"],["Concert","Festival"],
+  ["Painting","Sculpture"],["Guitar","Piano"],["Drum","Tambourine"],
+  ["Comedy","Drama"],["Cartoon","Anime"],["Podcast","Radio"],
+  ["Theater","Cinema"],["Photo","Video"],["Comic","Novel"],
+  ["Opera","Musical"],["Karaoke","Concert"],
+  // Vehicles & Transport
+  ["Car","Motorcycle"],["Submarine","Spaceship"],["Bus","Train"],
+  ["Bike","Scooter"],["Boat","Yacht"],["Helicopter","Airplane"],
+  ["Truck","Van"],["Skateboard","Rollerblade"],
+  // Professions
+  ["Astronaut","Pilot"],["Doctor","Nurse"],["Teacher","Professor"],
+  ["Chef","Baker"],["Police","Firefighter"],["Artist","Designer"],
+  ["Farmer","Gardener"],["Singer","Dancer"],
+  // Seasons & Nature
+  ["Summer","Winter"],["Spring","Autumn"],["Sun","Moon"],
+  ["Rain","Snow"],["River","Stream"],["Volcano","Geyser"],
+  ["Star","Planet"],["Cloud","Fog"],
+  // Clothing
+  ["Sneakers","Boots"]
+];
+
+let state = {
+  screen: "home",
+  players: [],
+  imposters: 1,
+  blindMode: false,
+  assignments: null,
+  currentReveal: 0,
+  showCard: false
+};
+
+const $ = (sel) => document.querySelector(sel);
+const content = $("#content");
+const launcherBack = $("#launcherBack");
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function makeAssignments(players, imposterCount, blindMode) {
+  const pair = shuffle(WORD_PAIRS)[0];
+  const [crewWord, imposterWord] = Math.random() < 0.5 ? pair : [pair[1], pair[0]];
+  const indices = shuffle([...Array(players.length).keys()]);
+  const imposterIdx = new Set(indices.slice(0, imposterCount));
+  const out = {};
+  players.forEach((p, i) => {
+    const isImposter = imposterIdx.has(i);
+    out[p] = {
+      role: isImposter ? "imposter" : "crew",
+      word: isImposter ? (blindMode ? null : imposterWord) : crewWord
+    };
+  });
+  return { assignments: out, crewWord, imposterWord };
+}
+
+function render() {
+  // Hide the launcher-back link once a game is in progress so it can't be
+  // tapped mid-reveal and accidentally exit. Visible only on the home screen.
+  launcherBack.style.display = state.screen === "home" ? "" : "none";
+  if (state.screen === "home") return renderHome();
+  if (state.screen === "setup") return renderSetup();
+  if (state.screen === "reveal") return renderReveal();
+  if (state.screen === "play") return renderPlay();
+  if (state.screen === "vote") return renderVote();
+  if (state.screen === "results") return renderResults();
+}
+
+function renderHome() {
+  content.innerHTML = `
+    <div class="screen">
+      <div class="home-card">
+        <div class="ops-tag">CLASSIFIED // OPERATION</div>
+        <div class="big-title">IM<span class="red">POS</span>TER</div>
+        <div class="tagline">// FIND THE TRAITOR //</div>
+        <div class="description">
+          → Each player gets a secret word<br>
+          → Imposters get a different word<br>
+          → Give one-word clues, no naming<br>
+          → Vote out the imposter to win
+        </div>
+        <button class="btn btn-primary" id="startBtn" style="width:100%;max-width:280px;">▶ Begin Mission</button>
+      </div>
+    </div>
+  `;
+  $("#startBtn").addEventListener("click", () => { state.screen = "setup"; render(); });
+}
+
+function renderSetup() {
+  const playersHtml = state.players.map((p, i) => `
+    <div class="player-pill">
+      <span class="num">${String(i+1).padStart(2,"0")}</span>
+      <span class="name">${p}</span>
+      <button class="remove-btn" data-i="${i}">✕</button>
+    </div>
+  `).join("");
+  const maxImp = Math.max(1, Math.floor(state.players.length / 2));
+  const canPlay = state.players.length >= 3;
+  content.innerHTML = `
+    <div class="screen">
+      <div class="ops-header">
+        <div class="ops-tag">// SETUP //</div>
+        <div class="ops-title">ROSTER</div>
+        <div class="ops-sub">${state.players.length} OPERATIVES // MIN 3</div>
+      </div>
+
+      <div class="section-label">Add Player</div>
+      <div class="input-row">
+        <input class="text-input" id="nameInput" placeholder="Enter name..." maxlength="20">
+        <button class="btn btn-cyan" id="addBtn">ADD</button>
+      </div>
+
+      <div class="player-list">${playersHtml || '<div style="color:rgba(255,255,255,0.3);font-size:0.85rem;text-align:center;padding:24px;">No operatives yet</div>'}</div>
+
+      ${state.players.length >= 3 ? `
+        <div class="section-label" style="margin-top:24px;">Imposters</div>
+        <div class="stepper">
+          <button id="impMinus">−</button>
+          <span class="val">${state.imposters}</span>
+          <button id="impPlus">+</button>
+        </div>
+
+        <div class="toggle" id="blindToggle" style="margin-top:20px;">
+          <div>
+            <div class="label-text">Blind Mode</div>
+            <div class="desc">Imposter gets no hint word</div>
+          </div>
+          <div class="switch ${state.blindMode ? "on" : ""}"></div>
+        </div>
+      ` : ""}
+
+      <div class="button-stack" style="margin-top:24px;">
+        <button class="btn btn-primary" id="playBtn" ${canPlay ? "" : "disabled style='opacity:0.3;'"}>▶ DEPLOY</button>
+        <button class="btn btn-ghost" id="backBtn">← Back</button>
+      </div>
+    </div>
+  `;
+
+  const input = $("#nameInput");
+  const addPlayer = () => {
+    const name = input.value.trim();
+    if (name && !state.players.includes(name) && state.players.length < 12) {
+      state.players.push(name);
+      render();
+      setTimeout(() => $("#nameInput")?.focus(), 50);
+    }
+  };
+  $("#addBtn").addEventListener("click", addPlayer);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addPlayer(); }});
+  document.querySelectorAll(".remove-btn").forEach(b => {
+    b.addEventListener("click", () => {
+      state.players.splice(parseInt(b.dataset.i), 1);
+      if (state.imposters > Math.max(1, Math.floor(state.players.length / 2))) {
+        state.imposters = Math.max(1, Math.floor(state.players.length / 2));
+      }
+      render();
+    });
+  });
+  $("#impMinus")?.addEventListener("click", () => { if (state.imposters > 1) { state.imposters--; render(); }});
+  $("#impPlus")?.addEventListener("click", () => { if (state.imposters < maxImp) { state.imposters++; render(); }});
+  $("#blindToggle")?.addEventListener("click", () => { state.blindMode = !state.blindMode; render(); });
+  $("#backBtn").addEventListener("click", () => { state.screen = "home"; render(); });
+  $("#playBtn").addEventListener("click", () => {
+    if (!canPlay) return;
+    const result = makeAssignments(state.players, state.imposters, state.blindMode);
+    state.assignments = result.assignments;
+    state.crewWord = result.crewWord;
+    state.imposterWord = result.imposterWord;
+    state.currentReveal = 0;
+    state.showCard = false;
+    state.screen = "reveal";
+    render();
+  });
+}
+
+function renderReveal() {
+  const player = state.players[state.currentReveal];
+  const data = state.assignments[player];
+  const total = state.players.length;
+  const progress = ((state.currentReveal) / total) * 100;
+
+  if (!state.showCard) {
+    content.innerHTML = `
+      <div class="screen">
+        <div class="ops-header">
+          <div class="ops-tag">// BRIEFING //</div>
+          <div class="ops-title">PASS DEVICE</div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+        <div class="player-counter" style="text-align:center;margin-bottom:16px;">OPERATIVE ${state.currentReveal+1} / ${total}</div>
+
+        <div class="reveal-card" style="border-color:rgba(255,255,255,0.15);">
+          <div class="corner-mark tl"></div>
+          <div class="corner-mark tr"></div>
+          <div class="corner-mark bl"></div>
+          <div class="corner-mark br"></div>
+          <div class="role-badge" style="background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);">PRIVATE</div>
+          <div class="player-name-big">${player}</div>
+          <div class="reveal-instructions">Make sure no one else can see your screen.</div>
+          <button class="btn btn-primary" id="revealBtn" style="width:100%;margin-top:8px;">▶ Reveal My Word</button>
+        </div>
+      </div>
+    `;
+    $("#revealBtn").addEventListener("click", () => { state.showCard = true; render(); });
+  } else {
+    const isImposter = data.role === "imposter";
+    const isLast = state.currentReveal === total - 1;
+    content.innerHTML = `
+      <div class="screen">
+        <div class="ops-header">
+          <div class="ops-tag">// BRIEFING //</div>
+          <div class="ops-title">PASS DEVICE</div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+        <div class="player-counter" style="text-align:center;margin-bottom:16px;">OPERATIVE ${state.currentReveal+1} / ${total}</div>
+
+        <div class="reveal-card ${isImposter ? "imposter" : ""}">
+          <div class="corner-mark tl"></div>
+          <div class="corner-mark tr"></div>
+          <div class="corner-mark bl"></div>
+          <div class="corner-mark br"></div>
+          <div class="role-badge ${isImposter ? "badge-imposter" : "badge-crew"}">${isImposter ? "★ IMPOSTER" : "CREW"}</div>
+          <div class="word-display ${isImposter ? (data.word ? "word-imposter" : "word-blind") : "word-crew"}">
+            ${data.word || "???"}
+          </div>
+          <div class="reveal-instructions">
+            ${isImposter
+              ? (data.word ? "Blend in. Bluff your clues." : "You have no hint — figure it out from others' clues.")
+              : "Everyone with this word is your crew."}
+          </div>
+        </div>
+
+        <button class="btn btn-cyan" id="nextBtn" style="width:100%;margin-top:16px;">
+          ${isLast ? "▶ Begin Discussion" : "✓ Got it · Pass to next"}
+        </button>
+      </div>
+    `;
+    $("#nextBtn").addEventListener("click", () => {
+      if (isLast) {
+        state.screen = "play";
+      } else {
+        state.currentReveal++;
+        state.showCard = false;
+      }
+      render();
+    });
+  }
+}
+
+function renderPlay() {
+  const playersHtml = state.players.map((p, i) => `
+    <div class="player-pill">
+      <span class="num">${String(i+1).padStart(2,"0")}</span>
+      <span class="name">${p}</span>
+    </div>
+  `).join("");
+  content.innerHTML = `
+    <div class="screen">
+      <div class="ops-header">
+        <div class="ops-tag">// PHASE 02 //</div>
+        <div class="ops-title">DISCUSSION</div>
+        <div class="ops-sub">GIVE ONE-WORD CLUES</div>
+      </div>
+
+      <div class="description" style="color:rgba(255,255,255,0.6);font-family:'Share Tech Mono',monospace;font-size:0.85rem;line-height:1.7;text-align:left;border-left:2px solid rgba(0,200,255,0.3);padding-left:16px;margin-bottom:24px;">
+        → Going around the table, each person says ONE word that hints at their secret.<br>
+        → Don't say the word itself.<br>
+        → After everyone has spoken, vote on who you think is the imposter.
+      </div>
+
+      <div class="section-label">Roster</div>
+      <div class="player-list">${playersHtml}</div>
+
+      <button class="btn btn-primary" id="voteBtn" style="margin-top:24px;width:100%;">▶ Time to Vote</button>
+    </div>
+  `;
+  $("#voteBtn").addEventListener("click", () => { state.screen = "vote"; render(); });
+}
+
+function renderVote() {
+  const buttonsHtml = state.players.map(p => `<button class="vote-btn" data-name="${p}">${p}</button>`).join("");
+  content.innerHTML = `
+    <div class="screen">
+      <div class="ops-header">
+        <div class="ops-tag">// PHASE 03 //</div>
+        <div class="ops-title">VOTE</div>
+        <div class="ops-sub">WHO IS THE IMPOSTER?</div>
+      </div>
+      <div class="vote-grid">${buttonsHtml}</div>
+      <button class="btn btn-ghost" id="skipBtn" style="margin-top:8px;">Skip · Reveal Now</button>
+    </div>
+  `;
+  document.querySelectorAll(".vote-btn").forEach(b => {
+    b.addEventListener("click", () => {
+      state.eliminated = b.dataset.name;
+      state.screen = "results";
+      render();
+    });
+  });
+  $("#skipBtn").addEventListener("click", () => {
+    state.eliminated = null;
+    state.screen = "results";
+    render();
+  });
+}
+
+function renderResults() {
+  const imposterPlayers = Object.entries(state.assignments)
+    .filter(([_, v]) => v.role === "imposter")
+    .map(([k]) => k);
+  const wasImposter = state.eliminated && imposterPlayers.includes(state.eliminated);
+  const verdict = state.eliminated
+    ? (wasImposter ? "CREW WINS" : "IMPOSTERS WIN")
+    : "REVEAL";
+  const verdictColor = state.eliminated ? (wasImposter ? "#00c8ff" : "#ff3c3c") : "#fff";
+
+  content.innerHTML = `
+    <div class="screen">
+      <div class="ops-header">
+        <div class="ops-tag">// VERDICT //</div>
+        <div class="ops-title" style="color:${verdictColor};text-shadow:0 0 30px ${verdictColor}66;">${verdict}</div>
+      </div>
+
+      ${state.eliminated ? `
+        <div class="stat-box">
+          <div class="stat-label">Eliminated</div>
+          <div class="stat-val ${wasImposter ? "cyan" : "red"}">${state.eliminated} ${wasImposter ? "✓ WAS IMPOSTER" : "✗ WAS CREW"}</div>
+        </div>
+      ` : ""}
+
+      <div class="stat-box">
+        <div class="stat-label">Imposter${imposterPlayers.length > 1 ? "s" : ""}</div>
+        <div class="stat-val red">${imposterPlayers.join(", ")}</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-label">Crew Word</div>
+        <div class="stat-val cyan">${state.crewWord}</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-label">Imposter Word</div>
+        <div class="stat-val red">${state.blindMode ? "NONE" : state.imposterWord}</div>
+      </div>
+
+      <div class="button-stack" style="margin-top:20px;">
+        <button class="btn btn-primary" id="againBtn">▶ Play Again</button>
+        <button class="btn btn-ghost" id="newSetupBtn">⚙ Change Setup</button>
+        <button class="btn btn-ghost" id="homeBtn">⌂ Home</button>
+      </div>
+    </div>
+  `;
+  $("#againBtn").addEventListener("click", () => {
+    // Same players, same settings — new round
+    const result = makeAssignments(state.players, state.imposters, state.blindMode);
+    state.assignments = result.assignments;
+    state.crewWord = result.crewWord;
+    state.imposterWord = result.imposterWord;
+    state.currentReveal = 0;
+    state.showCard = false;
+    state.eliminated = null;
+    state.screen = "reveal";
+    render();
+  });
+  $("#newSetupBtn").addEventListener("click", () => {
+    state.assignments = null;
+    state.eliminated = null;
+    state.screen = "setup";
+    render();
+  });
+  $("#homeBtn").addEventListener("click", () => {
+    state.screen = "home";
+    render();
+  });
+}
+
+render();
+</script>
+</body>
+</html>

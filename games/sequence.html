@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Color Sequence</title>
+  <meta name="theme-color" content="#F2A93B" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Sequence" />
+  <link rel="apple-touch-icon" href="../icons/sequence-180.png" />
+  <link rel="stylesheet" href="../styles.css" />
+  <style>
+    .pad-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      width: min(86vmin, 520px);
+      aspect-ratio: 1 / 1;
+    }
+    .pad {
+      border-radius: 22px;
+      cursor: pointer;
+      opacity: 0.55;
+      transition: opacity 120ms ease, transform 80ms ease;
+      box-shadow: inset 0 -6px 14px rgba(0,0,0,0.25);
+    }
+    .pad.lit { opacity: 1; transform: scale(0.97); box-shadow: 0 0 30px currentColor inset, 0 0 24px currentColor; }
+    .pad[data-c="0"] { background: #2EB872; color: #2EB872; }
+    .pad[data-c="1"] { background: #E85D75; color: #E85D75; }
+    .pad[data-c="2"] { background: #F2A93B; color: #F2A93B; }
+    .pad[data-c="3"] { background: #5B5BD6; color: #5B5BD6; }
+    .pads-disabled .pad { pointer-events: none; }
+    .status {
+      font-size: 1.2rem;
+      color: var(--muted);
+      min-height: 1.6em;
+      text-align: center;
+    }
+    .status b { color: var(--fg); }
+  </style>
+</head>
+<body>
+  <header class="app">
+    <a class="back" href="../index.html">← Back</a>
+    <h1>🎵 Sequence</h1>
+    <div class="score"><span>Round<b id="round">0</b></span></div>
+  </header>
+  <main class="center-stage">
+    <div class="status" id="status">Press start to begin.</div>
+    <div class="pad-grid pads-disabled" id="pads">
+      <div class="pad" data-c="0"></div>
+      <div class="pad" data-c="1"></div>
+      <div class="pad" data-c="2"></div>
+      <div class="pad" data-c="3"></div>
+    </div>
+    <button class="primary" id="start">Start</button>
+  </main>
+
+  <script>
+    const pads = document.getElementById('pads');
+    const padEls = pads.querySelectorAll('.pad');
+    const statusEl = document.getElementById('status');
+    const roundEl = document.getElementById('round');
+    const startBtn = document.getElementById('start');
+
+    // WebAudio: simple tones per color so it feels like Simon.
+    let audioCtx;
+    const FREQS = [329.6, 261.6, 392.0, 220.0]; // E, C, G, A
+
+    function tone(i, ms = 350) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'sine';
+        o.frequency.value = FREQS[i];
+        g.gain.value = 0.0001;
+        o.connect(g).connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+        g.gain.exponentialRampToValueAtTime(0.25, now + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + ms / 1000);
+        o.start(now);
+        o.stop(now + ms / 1000 + 0.05);
+      } catch (e) { /* noop */ }
+    }
+
+    let sequence = [];
+    let userIdx = 0;
+    let round = 0;
+    let playing = false;
+
+    function flash(i, ms = 380) {
+      const el = padEls[i];
+      el.classList.add('lit');
+      tone(i, ms);
+      return new Promise((res) => setTimeout(() => {
+        el.classList.remove('lit');
+        setTimeout(res, 140);
+      }, ms));
+    }
+
+    async function playSequence() {
+      pads.classList.add('pads-disabled');
+      statusEl.innerHTML = `Watch <b>round ${round}</b>…`;
+      await new Promise((r) => setTimeout(r, 600));
+      for (const i of sequence) {
+        await flash(i);
+      }
+      statusEl.textContent = 'Your turn!';
+      userIdx = 0;
+      pads.classList.remove('pads-disabled');
+    }
+
+    function nextRound() {
+      round++;
+      roundEl.textContent = round;
+      sequence.push(Math.floor(Math.random() * 4));
+      playSequence();
+    }
+
+    function gameOver() {
+      playing = false;
+      pads.classList.add('pads-disabled');
+      statusEl.innerHTML = `❌ Game over. You reached round <b>${round}</b>.`;
+      startBtn.textContent = 'Play again';
+      startBtn.style.display = '';
+    }
+
+    padEls.forEach((el) => {
+      el.addEventListener('pointerdown', async () => {
+        if (!playing) return;
+        const i = Number(el.dataset.c);
+        await flash(i, 240);
+        if (sequence[userIdx] !== i) return gameOver();
+        userIdx++;
+        if (userIdx === sequence.length) {
+          pads.classList.add('pads-disabled');
+          statusEl.innerHTML = `✅ Nice! Get ready…`;
+          setTimeout(nextRound, 700);
+        }
+      });
+    });
+
+    startBtn.addEventListener('click', () => {
+      sequence = []; userIdx = 0; round = 0;
+      roundEl.textContent = '0';
+      playing = true;
+      startBtn.style.display = 'none';
+      // unlock audio
+      try { (audioCtx || new (window.AudioContext || window.webkitAudioContext)()).resume(); } catch(e) {}
+      nextRound();
+    });
+  </script>
+</body>
+</html>
