@@ -14,11 +14,12 @@ kids-games/
 ├── styles.css              # Shared styles
 ├── icons/                  # 180/192/512 PNG icons (one set per game)
 ├── generate_icons.py       # Re-run with PIL to regenerate icons
+├── tools/trivoca_kids_words.py  # Kid word lists + hints; rebuilds Trivoca's word data
 └── games/
     ├── memory.html         # Memory Match (flip pairs)
     ├── target.html         # Tap the Target (reflexes, 30s)
     ├── sequence.html       # Color Sequence (Simon-style)
-    ├── trivoca.html        # Trivoca (word guess — PT-BR, ES-LA, EN-US; 5 or 6 letters)
+    ├── trivoca.html        # Trivoca Kids (word guess with hints — PT-BR, ES-LA, EN-US; 4 or 5 letters)
     └── imposter.html       # Imposter (pass-the-iPad party game)
 ```
 
@@ -100,3 +101,17 @@ will pick up the new version next time they have network.
   font path didn't render on this machine). Drop in nicer PNGs anytime —
   same filenames, same sizes.
 - Everything is plain HTML/CSS/JS, no build step, no dependencies.
+
+## Trivoca Kids word lists
+
+The answer words, with the picture and category shown by the first 💡 hint,
+live in `tools/trivoca_kids_words.py`. To add or change words, edit the list
+for that language (`word emoji category`, one per line, written with its
+accents), then rebuild the data inside `games/trivoca.html`:
+
+```bash
+pip install wordfreq
+python3 tools/trivoca_kids_words.py
+```
+
+Bump `CACHE_VERSION` in `sw.js` afterwards so the iPads pick it up.
