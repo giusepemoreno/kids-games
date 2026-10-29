@@ -19,7 +19,7 @@ GAMES = [
     ("memory",   "#E85D75", "🧠"),
     ("target",   "#2EB872", "🎯"),
     ("sequence", "#F2A93B", "🎵"),
-    ("wordle",   "#3a86ff", "📝"),
+    ("trivoca",  "#1f7a5c", "🟩"),
     ("imposter", "#ff3c3c", "🕵"),
 ]
 

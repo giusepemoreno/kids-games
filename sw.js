@@ -1,6 +1,6 @@
 // Simple offline-first service worker.
 // Bump CACHE_VERSION when you change cached files so iPads pick up the update.
-const CACHE_VERSION = 'kids-games-v4';
+const CACHE_VERSION = 'kids-games-v5';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -9,7 +9,7 @@ const CORE_ASSETS = [
   './games/memory.html',
   './games/target.html',
   './games/sequence.html',
-  './games/wordle.html',
+  './games/trivoca.html',
   './games/imposter.html',
   './icons/launcher-180.png',
   './icons/launcher-192.png',
@@ -17,7 +17,7 @@ const CORE_ASSETS = [
   './icons/memory-180.png',
   './icons/target-180.png',
   './icons/sequence-180.png',
-  './icons/wordle-180.png',
+  './icons/trivoca-180.png',
   './icons/imposter-180.png'
 ];
 

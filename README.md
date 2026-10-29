@@ -17,7 +17,9 @@ kids-games/
 └── games/
     ├── memory.html         # Memory Match (flip pairs)
     ├── target.html         # Tap the Target (reflexes, 30s)
-    └── sequence.html       # Color Sequence (Simon-style)
+    ├── sequence.html       # Color Sequence (Simon-style)
+    ├── trivoca.html        # Trivoca (word guess — PT-BR, ES-LA, EN-US; 5 or 6 letters)
+    └── imposter.html       # Imposter (pass-the-iPad party game)
 ```
 
 Each game is one self-contained HTML file. Add a new game by dropping a new
