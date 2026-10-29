@@ -271,7 +271,7 @@ header .brand { flex: 1; }
       help: 'Como jogar',
       helpBody: L => `<p>Descubra a palavra de <b>${L} letras</b> em 6 tentativas. Cada tentativa precisa ser uma palavra válida.</p>
         <p>Acentos e cedilha são preenchidos automaticamente — digite <b>maca</b> e aparece <b>MAÇÃ</b>.</p>
-        <p>Travou? Toque em <b>💡 Dica</b> (3 por palavra): primeiro um desenho e o tema, depois uma letra no lugar certo, depois algumas letras riscadas do teclado.</p>`,
+        <p>Travou? Toque em <b>💡 Dica</b> (3 por palavra): primeiro o tema, depois uma letra no lugar certo, depois algumas letras riscadas do teclado.</p>`,
       ex: [['hit','campo',0,'A letra C está no lugar certo.'],['near','prato',1,'A letra R está na palavra, em outro lugar.'],['miss','vinho',0,'A letra V não está na palavra.']],
       modes: '<p><b>Diária</b>: uma palavra por dia para cada idioma e tamanho. <b>Livre</b>: jogue quantas quiser.</p>'
     },
@@ -288,7 +288,7 @@ header .brand { flex: 1; }
       help: 'Cómo jugar',
       helpBody: L => `<p>Adivina la palabra de <b>${L} letras</b> en 6 intentos. Cada intento debe ser una palabra válida.</p>
         <p>Las tildes se completan solas — escribe <b>arbol</b> y aparece <b>ÁRBOL</b>. La <b>Ñ</b> es una letra aparte.</p>
-        <p>¿Te trabaste? Toca <b>💡 Pista</b> (3 por palabra): primero un dibujo y el tema, luego una letra en su lugar, luego algunas letras tachadas del teclado.</p>`,
+        <p>¿Te trabaste? Toca <b>💡 Pista</b> (3 por palabra): primero el tema, luego una letra en su lugar, luego algunas letras tachadas del teclado.</p>`,
       ex: [['hit','gente',0,'La G está en el lugar correcto.'],['near','plato',1,'La L está en la palabra, en otro lugar.'],['miss','nieve',0,'La N no está en la palabra.']],
       modes: '<p><b>Diaria</b>: una palabra por día para cada idioma y largo. <b>Libre</b>: juega todas las que quieras.</p>'
     },
@@ -304,7 +304,7 @@ header .brand { flex: 1; }
       cats: { an: 'An animal', fo: 'Something to eat', na: 'In nature', sk: 'Sky and weather', ho: 'At home', bo: 'Part of your body', sc: 'At school', pl: 'For playing', mu: 'Music', cl: 'Something to wear', tr: 'Places and travel', pe: 'A person', co: 'A color' },
       help: 'How to play',
       helpBody: L => `<p>Guess the <b>${L}-letter</b> word in 6 tries. Each guess must be a real word.</p>
-        <p>Stuck? Tap <b>💡 Hint</b> (3 per word): first a picture and the topic, then one letter in its spot, then some wrong letters crossed off the keyboard.</p>`,
+        <p>Stuck? Tap <b>💡 Hint</b> (3 per word): first the topic, then one letter in its spot, then some wrong letters crossed off the keyboard.</p>`,
       ex: [['hit','water',0,'W is in the word and in the right spot.'],['near','pilot',1,'I is in the word but in another spot.'],['miss','vague',3,'U is not in the word.']],
       modes: '<p><b>Daily</b>: one word a day for each language and length. <b>Free</b>: play as many as you like.</p>'
     }
@@ -565,11 +565,12 @@ header .brand { flex: 1; }
     clues.innerHTML = '';
     const add = (pic, text) => {
       const el = document.createElement('span'); el.className = 'clue';
-      el.innerHTML = '<span class="pic" aria-hidden="true"></span><span class="txt"></span>';
-      el.querySelector('.pic').textContent = pic; el.querySelector('.txt').textContent = text;
+      el.innerHTML = (pic ? '<span class="pic" aria-hidden="true"></span>' : '') + '<span class="txt"></span>';
+      if (pic) el.querySelector('.pic').textContent = pic;
+      el.querySelector('.txt').textContent = text;
       clues.appendChild(el);
     };
-    if (game.hints >= 1) { const [pic, cat] = words(prefs.lang, prefs.len).hints[game.answer]; add(pic, x.cats[cat]); }
+    if (game.hints >= 1) add('', x.cats[words(prefs.lang, prefs.len).hints[game.answer][1]]);
     if (game.hints >= 3 && game.crossed.length) add('🚫', x.crossed(game.crossed.length));
     const left = MAX_HINTS - game.hints;
     $('hintLabel').textContent = x.hint;
