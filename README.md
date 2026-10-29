@@ -104,7 +104,8 @@ will pick up the new version next time they have network.
 
 ## Trivoca Kids word lists
 
-The answer words, with the picture and category shown by the first 💡 hint,
+The answer words, with the category shown by the first 💡 hint (the emoji
+is kept in the list but not shown — it gave the word away),
 live in `tools/trivoca_kids_words.py`. To add or change words, edit the list
 for that language (`word emoji category`, one per line, written with its
 accents), then rebuild the data inside `games/trivoca.html`:
