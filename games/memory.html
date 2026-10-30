@@ -4,85 +4,93 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <title>Memory Match</title>
-  <meta name="theme-color" content="#E85D75" />
+  <meta name="theme-color" content="#1a1a2e" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Memory" />
   <link rel="apple-touch-icon" href="../icons/memory-180.png" />
   <link rel="stylesheet" href="../styles.css" />
   <style>
-    .controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom: 12px; }
-    select { background: var(--bg-2); color: var(--fg); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 8px 12px; font-size: 1rem; }
-    .board { display:grid; gap:10px; flex:1; align-content:center; justify-content:center; }
+    body { --game: #E85D75; --game-2: #b03d56; }
+    .controls { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; flex-shrink: 0; }
+    .board-wrap { flex: 1; min-height: 0; display: grid; place-items: center; padding-top: 14px; }
+    .board { display: grid; gap: var(--gap, 12px); }
     .card {
-      aspect-ratio: 1 / 1;
-      width: 100%;
-      max-width: 130px;
-      perspective: 600px;
+      width: var(--card, 100px);
+      height: var(--card, 100px);
+      perspective: 700px;
       cursor: pointer;
+      border: 0;
+      padding: 0;
+      background: none;
     }
     .card-inner {
-      width:100%; height:100%;
-      position:relative;
+      width: 100%; height: 100%;
+      position: relative;
       transform-style: preserve-3d;
-      transition: transform 280ms ease;
-      border-radius: 16px;
+      transition: transform 300ms cubic-bezier(0.3, 1.3, 0.5, 1);
     }
     .card.flipped .card-inner { transform: rotateY(180deg); }
     .face {
-      position:absolute; inset:0;
+      position: absolute; inset: 0;
       backface-visibility: hidden;
-      border-radius: 16px;
-      display:flex; align-items:center; justify-content:center;
-      font-size: clamp(2rem, 8vw, 3.6rem);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      -webkit-backface-visibility: hidden;
+      border-radius: calc(var(--card, 100px) * 0.18);
+      display: grid; place-items: center;
+      box-shadow: 0 5px 0 rgba(0, 0, 0, 0.25), 0 8px 18px rgba(0, 0, 0, 0.25);
     }
-    .face.back { background: linear-gradient(160deg, #E85D75, #6a2d3c); color: white; font-size: 2rem; }
-    .face.front { background: white; color: black; transform: rotateY(180deg); }
-    .card.matched .face.front { background: #c8f0d4; }
-    .card.matched { pointer-events: none; }
-    .win {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
-      display:flex; align-items:center; justify-content:center; z-index:10;
+    .face.back {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.16) 0 22%, transparent 23%),
+        radial-gradient(rgba(255, 255, 255, 0.12) 2px, transparent 2.5px) 0 0 / 14px 14px,
+        linear-gradient(160deg, #f07088, #8a2f45);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: calc(var(--card, 100px) * 0.3);
+      font-weight: 800;
     }
-    .win .panel {
-      background: var(--bg-2); padding: 28px; border-radius: 18px; text-align:center;
-      max-width: 320px;
+    .face.front {
+      background: #fdfcff;
+      transform: rotateY(180deg);
+      font-size: calc(var(--card, 100px) * 0.56);
     }
-    .win h2 { margin-top:0; }
+    .card.matched .face.front { background: #d4f5df; animation: bump 0.4s ease; }
+    .card.matched { cursor: default; }
+    .card.nope .face.front { animation: shake 0.4s ease; }
   </style>
 </head>
 <body>
-  <header class="app">
-    <a class="back" href="../index.html">← Back</a>
+  <header class="topbar">
+    <a class="back-btn" href="../index.html" aria-label="Back to games"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></a>
     <h1>🧠 Memory</h1>
-    <div class="score"><span>Moves<b id="moves">0</b></span></div>
+    <div class="stats">
+      <div class="stat" id="movesStat"><span class="lbl">Moves</span><span class="val" id="moves">0</span></div>
+      <div class="stat"><span class="lbl">Pairs</span><span class="val" id="pairs">0/0</span></div>
+    </div>
   </header>
   <main>
     <div class="controls">
-      <label>Size:
-        <select id="size">
-          <option value="3x4">3×4 (easy)</option>
-          <option value="4x4" selected>4×4</option>
-          <option value="4x5">4×5</option>
-          <option value="5x6">5×6 (hard)</option>
-        </select>
-      </label>
-      <button class="primary" id="restart">New Game</button>
+      <div class="seg" role="group" aria-label="Board size" id="sizes">
+        <button data-size="3x4">Easy<small>12 cards</small></button>
+        <button data-size="4x4">Medium<small>16 cards</small></button>
+        <button data-size="4x5">Hard<small>20 cards</small></button>
+        <button data-size="5x6">Expert<small>30 cards</small></button>
+      </div>
+      <button class="btn ghost" id="restart" aria-label="New game">↻ New</button>
     </div>
-    <div class="board" id="board"></div>
+    <div class="board-wrap" id="wrap"><div class="board" id="board"></div></div>
   </main>
 
+  <script src="../kit.js"></script>
   <script>
     const EMOJI_POOL = ['🐶','🐱','🐭','🦊','🐻','🐼','🐨','🦁','🐸','🐵','🦄','🐙','🐢','🐝','🦋','🐬','🦖','🦩','🌈','🌟','🍎','🍕','🚀','🎈','⚽️','🎸','🎁','🌺'];
+    const SIZE_NAMES = { '3x4': 'Easy', '4x4': 'Medium', '4x5': 'Hard', '5x6': 'Expert' };
 
     const $ = (id) => document.getElementById(id);
     const board = $('board');
-    const movesEl = $('moves');
-    const sizeSel = $('size');
-    const restartBtn = $('restart');
 
-    let first = null, lock = false, moves = 0, matchesLeft = 0;
+    let size = Kit.store.get('memory:size', '4x4');
+    if (!SIZE_NAMES[size]) size = '4x4';
+    let first = null, lock = false, moves = 0, pairs = 0, found = 0;
 
     function shuffle(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
@@ -92,71 +100,104 @@
       return arr;
     }
 
+    function setStats() {
+      $('moves').textContent = moves;
+      $('pairs').textContent = `${found}/${pairs}`;
+    }
+
+    // Columns × rows for the current screen: lay the long side along the long side.
+    function grid() {
+      let [c, r] = size.split('x').map(Number);
+      const wide = $('wrap').clientWidth > $('wrap').clientHeight;
+      if (wide !== c > r) [c, r] = [r, c];
+      return [c, r];
+    }
+
+    function layout() {
+      const [c, r] = grid();
+      const wrap = $('wrap');
+      const w = wrap.clientWidth, h = wrap.clientHeight - 14;
+      const gap = Math.max(8, Math.min(16, Math.floor(Math.min(w, h) / 50)));
+      const card = Math.floor(Math.min((w - gap * (c - 1)) / c, (h - gap * (r - 1)) / r, 170));
+      board.style.gridTemplateColumns = `repeat(${c}, auto)`;
+      board.style.setProperty('--gap', gap + 'px');
+      board.style.setProperty('--card', Math.max(44, card) + 'px');
+    }
+
     function start() {
-      const [c, r] = sizeSel.value.split('x').map(Number);
-      const total = c * r;
-      const pairs = total / 2;
+      document.querySelectorAll('#sizes button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.size === size));
+      const [c, r] = size.split('x').map(Number);
+      pairs = (c * r) / 2;
       const symbols = shuffle([...EMOJI_POOL]).slice(0, pairs);
       const deck = shuffle([...symbols, ...symbols]);
+      moves = 0; found = 0; first = null; lock = false;
+      setStats();
 
       board.innerHTML = '';
-      board.style.gridTemplateColumns = `repeat(${c}, minmax(0, 1fr))`;
-      moves = 0; matchesLeft = pairs; first = null; lock = false;
-      movesEl.textContent = '0';
-
       deck.forEach((sym) => {
-        const card = document.createElement('div');
+        const card = document.createElement('button');
         card.className = 'card';
         card.dataset.symbol = sym;
-        card.innerHTML = `
-          <div class="card-inner">
-            <div class="face back">?</div>
-            <div class="face front">${sym}</div>
-          </div>`;
+        card.setAttribute('aria-label', 'Hidden card');
+        card.innerHTML = `<div class="card-inner"><div class="face back">?</div><div class="face front">${sym}</div></div>`;
         card.addEventListener('click', () => onFlip(card));
         board.appendChild(card);
       });
+      layout();
     }
 
     function onFlip(card) {
-      if (lock || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+      if (lock || card.classList.contains('flipped')) return;
       card.classList.add('flipped');
+      card.setAttribute('aria-label', card.dataset.symbol);
       if (!first) { first = card; return; }
-      moves++; movesEl.textContent = moves;
+      moves++;
+      Kit.pulse($('movesStat'));
       if (first.dataset.symbol === card.dataset.symbol) {
         first.classList.add('matched');
         card.classList.add('matched');
         first = null;
-        matchesLeft--;
-        if (matchesLeft === 0) setTimeout(showWin, 350);
+        found++;
+        setStats();
+        if (found === pairs) setTimeout(win, 450);
       } else {
+        setStats();
         lock = true;
         const a = first, b = card;
+        setTimeout(() => { a.classList.add('nope'); b.classList.add('nope'); }, 300);
         setTimeout(() => {
-          a.classList.remove('flipped');
-          b.classList.remove('flipped');
+          [a, b].forEach((x) => { x.classList.remove('flipped', 'nope'); x.setAttribute('aria-label', 'Hidden card'); });
           first = null; lock = false;
-        }, 800);
+        }, 900);
       }
     }
 
-    function showWin() {
-      const overlay = document.createElement('div');
-      overlay.className = 'win';
-      overlay.innerHTML = `
-        <div class="panel">
-          <h2>🎉 You did it!</h2>
-          <p>Solved in <b>${moves}</b> moves.</p>
-          <button class="primary" id="again">Play again</button>
-        </div>`;
-      document.body.appendChild(overlay);
-      overlay.querySelector('#again').addEventListener('click', () => {
-        overlay.remove(); start();
+    function win() {
+      const { best, isNew } = Kit.record('memory:' + size, moves, { lowerIsBetter: true });
+      // Stars: a perfect game takes `pairs` moves.
+      const stars = moves <= pairs * 1.5 ? 3 : moves <= pairs * 2.2 ? 2 : 1;
+      Kit.celebrate();
+      Kit.dialog({
+        emoji: '🎉',
+        title: 'You did it!',
+        html: `<div class="stars" aria-label="${stars} of 3 stars">${'⭐'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>
+               <p>Solved in <b>${moves}</b> moves.</p>
+               <p>Best on ${SIZE_NAMES[size]}: <b>${best}</b></p>`,
+        badge: isNew ? '🏆 New best!' : '',
+        actions: [{ label: 'Play again', onClick: start }]
       });
     }
 
-    sizeSel.addEventListener('change', start);
-    restartBtn.addEventListener('click', start);
+    $('sizes').addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      size = b.dataset.size;
+      Kit.store.set('memory:size', size);
+      start();
+    });
+    $('restart').addEventListener('click', start);
+    window.addEventListener('resize', layout);
+    if (window.ResizeObserver) new ResizeObserver(layout).observe($('wrap'));
     start();
   </script>
 </body>

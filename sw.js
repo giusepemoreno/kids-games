@@ -1,10 +1,14 @@
-// Simple offline-first service worker.
-// Bump CACHE_VERSION when you change cached files so iPads pick up the update.
-const CACHE_VERSION = 'kids-games-v7';
+// Offline service worker.
+// Pages and files come from the network when it answers (so updates show up
+// on the next launch) and from the cache when offline.
+// Bump CACHE_VERSION when you change the list below.
+const CACHE_VERSION = 'kids-games-v8';
+const NETWORK_TIMEOUT_MS = 4000;
 const CORE_ASSETS = [
   './',
   './index.html',
   './styles.css',
+  './kit.js',
   './manifest.webmanifest',
   './games/memory.html',
   './games/target.html',
@@ -37,21 +41,33 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+function fromNetwork(request) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(reject, NETWORK_TIMEOUT_MS);
+    fetch(request).then(
+      (response) => { clearTimeout(timer); resolve(response); },
+      (error) => { clearTimeout(timer); reject(error); }
+    );
+  });
+}
+
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
+  const request = event.request;
+  // Only our own files; other sites (e.g. web fonts) go straight to the browser.
+  if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request)
-        .then((response) => {
-          // Cache same-origin successful GETs for offline replay.
-          if (response.ok && new URL(event.request.url).origin === self.location.origin) {
-            const copy = response.clone();
-            caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, copy));
-          }
-          return response;
-        })
-        .catch(() => caches.match('./index.html'));
-    })
+    fromNetwork(request)
+      .then((response) => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
+        }
+        return response;
+      })
+      .catch(() =>
+        caches.match(request, { ignoreSearch: true }).then((cached) =>
+          cached || (request.mode === 'navigate' ? caches.match('./index.html') : Response.error())
+        )
+      )
   );
 });

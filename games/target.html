@@ -4,156 +4,279 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <title>Tap the Target</title>
-  <meta name="theme-color" content="#2EB872" />
+  <meta name="theme-color" content="#1a1a2e" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Target" />
   <link rel="apple-touch-icon" href="../icons/target-180.png" />
   <link rel="stylesheet" href="../styles.css" />
   <style>
+    body { --game: #2EB872; --game-2: #1f8a55; }
+    .hud { display: flex; align-items: center; gap: 14px; padding: 0 2px 12px; flex-shrink: 0; }
+    .timebar { flex: 1; height: 14px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+    .timebar span { display: block; height: 100%; width: 100%; border-radius: inherit; background: linear-gradient(90deg, #F2A93B, #2EB872); transform-origin: left; transition: transform 1s linear; }
+    .timebar.low span { background: #E85D75; }
+    .lives { font-size: 1.5rem; letter-spacing: 2px; white-space: nowrap; }
+    .lives .gone { opacity: 0.25; filter: grayscale(1); }
+
     .arena {
       flex: 1;
+      min-height: 0;
       position: relative;
-      background: radial-gradient(ellipse at center, #284f3a 0%, #122118 100%);
-      border-radius: 20px;
       overflow: hidden;
+      border-radius: 28px;
       touch-action: none;
+      background:
+        radial-gradient(rgba(255, 255, 255, 0.05) 1.5px, transparent 2px) 0 0 / 28px 28px,
+        radial-gradient(ellipse at center, #2c5a42 0%, #122118 100%);
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.05);
+      transition: box-shadow 0.15s ease;
     }
+    .arena.ouch { box-shadow: inset 0 0 0 6px rgba(232, 93, 117, 0.8); }
+
     .target {
       position: absolute;
-      width: 72px; height: 72px;
+      width: var(--size, 84px); height: var(--size, 84px);
+      margin: calc(var(--size, 84px) / -2) 0 0 calc(var(--size, 84px) / -2);
       border-radius: 50%;
-      background: radial-gradient(circle at 35% 35%, #fff, #2EB872 60%, #155a36);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-      transform: translate(-50%, -50%) scale(0);
-      animation: pop 80ms ease-out forwards;
+      border: 0; padding: 0;
       cursor: pointer;
+      background: radial-gradient(circle, #fff 0 14%, #2EB872 15% 34%, #fff 35% 52%, #2EB872 53% 70%, #1f8a55 71%);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+      animation: appear 120ms ease-out;
     }
     .target.bad {
-      background: radial-gradient(circle at 35% 35%, #fff, #E85D75 60%, #6a2530);
+      background: radial-gradient(circle at 35% 30%, #ff8a9c, #E85D75 55%, #8a2533);
+      display: grid; place-items: center;
+      font-size: calc(var(--size, 84px) * 0.5);
     }
-    @keyframes pop {
-      to { transform: translate(-50%, -50%) scale(1); }
+    .target.gone { transition: opacity 180ms ease, transform 180ms ease; opacity: 0; transform: scale(0.4); pointer-events: none; }
+    .target.hit { transition: opacity 200ms ease, transform 200ms ease; opacity: 0; transform: scale(1.5); pointer-events: none; }
+
+    .float {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      font-size: 1.8rem; font-weight: 800;
+      pointer-events: none;
+      animation: rise 0.7s ease-out forwards;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
     }
-    .target.fading { transition: opacity 200ms ease, transform 200ms ease; opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-    .hud { display:flex; gap: 20px; align-items:center; padding: 0 4px 10px 4px; }
-    .hud .pill { background: rgba(255,255,255,0.06); padding: 8px 14px; border-radius: 999px; font-weight: 600; }
-    .end {
-      position: absolute; inset: 0; background: rgba(0,0,0,0.6);
-      display:flex; align-items:center; justify-content:center;
+    .float.good { color: #b8ffd6; }
+    .float.bad { color: #ffb3c0; }
+
+    .intro {
+      position: absolute; inset: 0;
+      display: grid; place-items: center; align-content: center; gap: 14px;
+      text-align: center; padding: 24px;
+      background: rgba(10, 20, 15, 0.45);
     }
-    .end .panel { background: var(--bg-2); padding: 26px; border-radius: 18px; text-align:center; min-width: 240px; }
+    .intro h2 { margin: 0; font-size: clamp(1.8rem, 5vw, 2.6rem); }
+    .intro p { margin: 0; font-size: 1.2rem; color: #d8eadf; line-height: 1.5; }
+    .intro .demo { display: flex; gap: 22px; justify-content: center; align-items: center; margin: 4px 0 8px; font-size: 1.1rem; font-weight: 700; }
+    .intro .demo .target { position: static; margin: 0 auto 6px; --size: 64px; animation: none; cursor: default; }
+    .countdown { font-size: clamp(5rem, 20vw, 9rem); font-weight: 800; animation: bump 0.5s ease; }
+
+    @keyframes appear { from { transform: scale(0); } }
+    @keyframes rise { to { transform: translate(-50%, -150%); opacity: 0; } }
   </style>
 </head>
 <body>
-  <header class="app">
-    <a class="back" href="../index.html">← Back</a>
+  <header class="topbar">
+    <a class="back-btn" href="../index.html" aria-label="Back to games"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></a>
     <h1>🎯 Target</h1>
-    <div></div>
+    <div class="stats">
+      <div class="stat" id="scoreStat"><span class="lbl">Score</span><span class="val" id="score">0</span></div>
+      <div class="stat"><span class="lbl">Best</span><span class="val" id="best">–</span></div>
+    </div>
   </header>
   <main>
     <div class="hud">
-      <div class="pill">Score <b id="score">0</b></div>
-      <div class="pill">Time <b id="time">30</b>s</div>
-      <div class="pill">Misses <b id="miss">0</b>/5</div>
+      <div class="timebar" id="timebar" role="progressbar" aria-label="Time left" aria-valuemin="0" aria-valuemax="30"><span id="timefill"></span></div>
+      <div class="lives" id="lives" aria-label="Lives"></div>
     </div>
-    <div class="arena" id="arena"></div>
+    <div class="arena" id="arena">
+      <div class="intro" id="intro">
+        <h2>Tap the targets!</h2>
+        <div class="demo">
+          <div><div class="target"></div>Tap these</div>
+          <div><div class="target bad">💣</div>Not these!</div>
+        </div>
+        <p>30 seconds. Missing a target or tapping a bomb costs a heart.</p>
+        <button class="btn big" id="go">▶ Start</button>
+      </div>
+    </div>
   </main>
 
+  <script src="../kit.js"></script>
   <script>
-    const arena = document.getElementById('arena');
-    const scoreEl = document.getElementById('score');
-    const timeEl = document.getElementById('time');
-    const missEl = document.getElementById('miss');
+    const GAME_TIME = 30, LIVES = 5;
+    const $ = (id) => document.getElementById(id);
+    const arena = $('arena');
 
-    let score = 0, miss = 0, time = 30, running = false;
+    let score = 0, miss = 0, time = GAME_TIME, running = false;
     let spawnTimer = null, tickTimer = null;
 
-    function rand(min, max) { return Math.random() * (max - min) + min; }
+    const rand = (min, max) => Math.random() * (max - min) + min;
+
+    function renderHud() {
+      $('score').textContent = score;
+      const b = Kit.best('target');
+      $('best').textContent = b == null ? '–' : b;
+      $('lives').innerHTML = Array.from({ length: LIVES }, (_, i) => `<span class="${i < LIVES - miss ? '' : 'gone'}">❤️</span>`).join('');
+      $('lives').setAttribute('aria-label', `${Math.max(0, LIVES - miss)} lives left`);
+      $('timefill').style.transform = `scaleX(${time / GAME_TIME})`;
+      $('timebar').classList.toggle('low', time <= 5);
+      $('timebar').setAttribute('aria-valuenow', time);
+    }
+
+    function floatText(x, y, text, cls) {
+      const f = document.createElement('div');
+      f.className = 'float ' + cls;
+      f.textContent = text;
+      f.style.left = x + 'px'; f.style.top = y + 'px';
+      arena.appendChild(f);
+      setTimeout(() => f.remove(), 700);
+    }
+
+    function targetSize() {
+      return Math.round(Math.max(64, Math.min(100, Math.min(arena.clientWidth, arena.clientHeight) / 7)));
+    }
 
     function spawn() {
       if (!running) return;
-      const rect = arena.getBoundingClientRect();
-      const pad = 50;
-      const t = document.createElement('div');
+      const size = targetSize(), pad = size / 2 + 8;
+      const t = document.createElement('button');
       const isBad = Math.random() < 0.18;
       t.className = 'target' + (isBad ? ' bad' : '');
-      const x = rand(pad, rect.width - pad);
-      const y = rand(pad, rect.height - pad);
-      t.style.left = x + 'px';
-      t.style.top = y + 'px';
+      t.setAttribute('aria-label', isBad ? 'Bomb' : 'Target');
+      if (isBad) t.textContent = '💣';
+      const x = rand(pad, arena.clientWidth - pad), y = rand(pad, arena.clientHeight - pad);
+      t.style.left = x + 'px'; t.style.top = y + 'px';
+      t.style.setProperty('--size', size + 'px');
 
       const lifetime = Math.max(700, 1400 - score * 25);
       const decay = setTimeout(() => {
-        if (!t.isConnected) return;
-        if (!isBad) registerMiss();
-        t.classList.add('fading');
-        setTimeout(() => t.remove(), 220);
+        if (!t.isConnected || !running) return;
+        if (!isBad) registerMiss(1, x, y);
+        t.classList.add('gone');
+        setTimeout(() => t.remove(), 200);
       }, lifetime);
 
       t.addEventListener('pointerdown', (e) => {
         e.preventDefault();
+        e.stopPropagation();
+        if (!running) return;
         clearTimeout(decay);
         if (isBad) {
-          registerMiss(2);
+          registerMiss(2, x, y);
         } else {
           score += 1;
-          scoreEl.textContent = score;
+          floatText(x, y, '+1', 'good');
+          Kit.pulse($('scoreStat'));
+          renderHud();
         }
-        t.classList.add('fading');
+        t.classList.add('hit');
         setTimeout(() => t.remove(), 200);
-      }, { passive: false });
+      });
 
       arena.appendChild(t);
-
-      const next = Math.max(280, 900 - score * 15);
-      spawnTimer = setTimeout(spawn, next);
+      spawnTimer = setTimeout(spawn, Math.max(280, 900 - score * 15));
     }
 
-    function registerMiss(n = 1) {
-      miss += n;
-      missEl.textContent = Math.min(miss, 5);
-      if (miss >= 5) end('Too many misses!');
+    function registerMiss(n, x, y) {
+      miss = Math.min(LIVES, miss + n);
+      if (x != null) floatText(x, y, n > 1 ? '💔💔' : '💔', 'bad');
+      arena.classList.add('ouch');
+      setTimeout(() => arena.classList.remove('ouch'), 180);
+      renderHud();
+      if (miss >= LIVES) end('Out of hearts!');
     }
 
     function tick() {
       time--;
-      timeEl.textContent = time;
+      renderHud();
       if (time <= 0) end("Time's up!");
     }
 
-    function start() {
-      score = 0; miss = 0; time = 30; running = true;
-      scoreEl.textContent = '0'; missEl.textContent = '0'; timeEl.textContent = '30';
-      arena.innerHTML = '';
-      clearTimeout(spawnTimer); clearInterval(tickTimer);
-      spawn();
-      tickTimer = setInterval(tick, 1000);
+    function clearArena() { arena.querySelectorAll(':scope > .target, :scope > .float, :scope > .countdown').forEach((el) => el.remove()); }
+
+    function countdown(done) {
+      $('intro').hidden = true;
+      clearArena();
+      let n = 3;
+      const show = () => {
+        arena.querySelectorAll(':scope > .countdown').forEach((el) => el.remove());
+        if (n === 0) return done();
+        const c = document.createElement('div');
+        c.className = 'intro countdown';
+        c.textContent = n;
+        arena.appendChild(c);
+        n--;
+        setTimeout(show, 650);
+      };
+      show();
     }
 
-    function end(msg) {
-      running = false;
-      clearTimeout(spawnTimer); clearInterval(tickTimer);
-      const overlay = document.createElement('div');
-      overlay.className = 'end';
-      overlay.innerHTML = `
-        <div class="panel">
-          <h2 style="margin-top:0">${msg}</h2>
-          <p>Score: <b>${score}</b></p>
-          <button class="primary" id="again">Play again</button>
-        </div>`;
-      arena.appendChild(overlay);
-      overlay.querySelector('#again').addEventListener('click', () => {
-        overlay.remove(); start();
+    function start() {
+      score = 0; miss = 0; time = GAME_TIME;
+      renderHud();
+      countdown(() => {
+        running = true;
+        spawn();
+        tickTimer = setInterval(tick, 1000);
       });
     }
 
-    // Tap empty arena = miss (encourages aim)
+    function stop() {
+      running = false;
+      clearTimeout(spawnTimer); clearInterval(tickTimer);
+    }
+
+    function end(msg) {
+      if (!running) return;
+      stop();
+      const { best, isNew } = Kit.record('target', score);
+      renderHud();
+      if (isNew) Kit.celebrate();
+      Kit.dialog({
+        emoji: miss >= LIVES ? '💔' : '⏰',
+        title: msg,
+        html: `<p>You tapped <b>${score}</b> target${score === 1 ? '' : 's'}.</p><p>Best: <b>${best}</b></p>`,
+        badge: isNew ? '🏆 New best!' : '',
+        actions: [
+          { label: 'Play again', onClick: start },
+          { label: 'Home', ghost: true, onClick: () => { location.href = '../index.html'; } }
+        ]
+      });
+    }
+
+    // Tapping empty space counts as a miss (encourages aim).
     arena.addEventListener('pointerdown', (e) => {
-      if (e.target === arena && running) registerMiss();
+      if (running && e.target === arena) {
+        const r = arena.getBoundingClientRect();
+        registerMiss(1, e.clientX - r.left, e.clientY - r.top);
+      }
     });
 
-    start();
+    // Leaving the app mid-game pauses it.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && running) {
+        stop();
+        clearArena();
+        Kit.dialog({
+          emoji: '⏸️',
+          title: 'Paused',
+          html: `<p>Score so far: <b>${score}</b></p>`,
+          actions: [
+            { label: 'Keep going', onClick: () => countdown(() => { running = true; spawn(); tickTimer = setInterval(tick, 1000); }) },
+            { label: 'Start over', ghost: true, onClick: start }
+          ]
+        });
+      }
+    });
+
+    $('go').addEventListener('click', start);
+    renderHud();
   </script>
 </body>
 </html>

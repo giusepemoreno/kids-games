@@ -14,42 +14,31 @@
 *, *::before, *::after { box-sizing: inherit; }
 /* Layout: one-screen game column — header, control strip, board that sizes itself to the space left, keyboard pinned at the bottom */
 :root {
-  --bg: #edf1ec;
-  --surface: #f8faf6;
-  --ink: #1b2420;
-  --muted: #63706a;
-  --line: #c9d3cc;
-  --key: #d9e1db;
-  --hit: #1f7a5c;
-  --near: #cf9a16;
-  --miss: #7a8681;
+  /* Same navy palette as the rest of the Kids Games app. */
+  --bg: #1a1a2e;
+  --surface: #232347;
+  --ink: #f5f5fa;
+  --muted: #b6b6cf;
+  --line: #3a3a66;
+  --key: #3b3b6b;
+  --hit: #1f9a6a;
+  --near: #F2A93B;
+  --miss: #4a4a6e;
   --on-tile: #ffffff;
   --on-near: #2a1d00;
-  --key-ink: #1b2420;
-  --key-used: #7a8681;
-  --key-used-ink: #ffffff;
-  --scrim: rgba(18, 26, 23, .45);
-  --font-display: "Arial Rounded MT Bold", "Arial Black", system-ui, sans-serif;
-  --font-body: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", sans-serif;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #111715; --surface: #1a221f; --ink: #e5ece8; --muted: #93a19a; --line: #2f3a36;
-    --key: #46524d; --hit: #1f7d5e; --near: #d9a92e; --miss: #3b4541; --on-tile: #ffffff;
-    --on-near: #241900; --key-ink: #f1f5f3; --key-used: #161c1a; --key-used-ink: #6f7c76;
-    --scrim: rgba(0, 0, 0, .6); color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #111715; --surface: #1a221f; --ink: #e5ece8; --muted: #93a19a; --line: #2f3a36;
-  --key: #46524d; --hit: #1f7d5e; --near: #d9a92e; --miss: #3b4541; --on-tile: #ffffff;
-  --on-near: #241900; --key-ink: #f1f5f3; --key-used: #161c1a; --key-used-ink: #6f7c76;
-  --scrim: rgba(0, 0, 0, .6); color-scheme: dark;
+  --key-ink: #f5f5fa;
+  --key-used: #15152a;
+  --key-used-ink: #6f6f93;
+  --scrim: rgba(10, 10, 25, .62);
+  --font-display: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --font-body: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  color-scheme: dark;
 }
 [hidden] { display: none !important; }
 html, body { height: 100%; margin: 0; }
 body {
   background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px;
+  background: radial-gradient(120% 55% at 50% -12%, rgba(31, 154, 106, .22), transparent 70%), var(--bg);
   overscroll-behavior: none; -webkit-tap-highlight-color: transparent;
 }
 button { font: inherit; color: inherit; cursor: pointer; }
@@ -61,7 +50,8 @@ button:focus-visible { outline: 2px solid var(--hit); outline-offset: 2px; }
   padding-block: 10px;
 }
 header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; }
-.back { margin-left: -8px; flex-shrink: 0; }
+.back { flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%; background: rgba(255, 255, 255, .08); }
+.back svg { stroke-width: 2.6; }
 header .brand { flex: 1; }
 .brand { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .brand h1 {
