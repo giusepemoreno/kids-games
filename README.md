@@ -16,12 +16,15 @@ kids-games/
 ├── icons/                  # 180/192/512 PNG icons (one set per game)
 ├── generate_icons.py       # Re-run with PIL to regenerate icons
 ├── tools/trivoca_kids_words.py  # Kid word lists + hints; rebuilds Trivoca's word data
+├── tools/pelea_fighters.py     # Turns the kids' fighter packs into Pelea de Papel's pieces
 └── games/
     ├── memory.html         # Memory Match (flip pairs)
     ├── target.html         # Tap the Target (reflexes, 30s)
     ├── sequence.html       # Color Sequence (Simon-style)
     ├── trivoca.html        # Trivoca Kids (word guess with hints — PT-BR, ES-LA, EN-US; 4 or 5 letters)
-    └── imposter.html       # Imposter (pass-the-iPad party game)
+    ├── imposter.html       # Imposter (pass-the-iPad party game)
+    ├── pelea.html          # Pelea de Papel (fighting game with the kids' drawings, vs. the computer)
+    └── pelea/              # its fighters (pieces + data), and fonts
 ```
 
 Each game is one HTML file that uses the shared `styles.css` and `kit.js`.
@@ -124,3 +127,28 @@ python3 tools/trivoca_kids_words.py
 ```
 
 Bump `CACHE_VERSION` in `sw.js` afterwards so the iPads pick it up.
+
+## Pelea de Papel fighters
+
+Each fighter starts as a pack from the two paper sheets (*Ficha de luchador*
+and *Piezas para animar*): `luchador.json` plus the cut-out pieces in
+`piezas/`. The game moves the pieces like a paper doll, turning each one
+around the joint points saved in the pack. To add or redo fighters, pass
+**all** the packs (zips or folders) to the build script:
+
+```bash
+python3 tools/pelea_fighters.py luchador-01-romboman.zip luchador-02-sword-men.zip luchador-03-mikati.zip
+```
+
+It writes the bordered pieces to `games/pelea/fighters/<name>/` and the data
+to `games/pelea/fighters.js`. The artists' names are left out on purpose.
+A new fighter also needs:
+
+- its three moves in `MOVES` in `games/pelea.html` (what Movimiento 1, 2 and
+  the Súper do); the button and card names come from the sheet,
+- any drawing quirks in `RIG_CFG` (e.g. no arms, a drawn-in sword, limbs
+  that need resizing),
+- its PNGs added to `CORE_ASSETS` in `sw.js`, and `CACHE_VERSION` bumped.
+
+Controls on a keyboard (handy for testing on a laptop): arrows move and jump,
+J punch, K kick, U and I the two moves, L the super, P or Esc pauses.

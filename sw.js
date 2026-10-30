@@ -2,7 +2,7 @@
 // Pages and files come from the network when it answers (so updates show up
 // on the next launch) and from the cache when offline.
 // Bump CACHE_VERSION when you change the list below.
-const CACHE_VERSION = 'kids-games-v8';
+const CACHE_VERSION = 'kids-games-v9';
 const NETWORK_TIMEOUT_MS = 4000;
 const CORE_ASSETS = [
   './',
@@ -15,6 +15,35 @@ const CORE_ASSETS = [
   './games/sequence.html',
   './games/trivoca.html',
   './games/imposter.html',
+  './games/pelea.html',
+  './games/pelea/fighters.js',
+  './games/pelea/fighters/mikati/brazo_adelante.png',
+  './games/pelea/fighters/mikati/brazo_atras.png',
+  './games/pelea/fighters/mikati/cabeza.png',
+  './games/pelea/fighters/mikati/cuerpo.png',
+  './games/pelea/fighters/mikati/mano_adelante.png',
+  './games/pelea/fighters/mikati/mano_atras.png',
+  './games/pelea/fighters/mikati/pie_adelante.png',
+  './games/pelea/fighters/mikati/pie_atras.png',
+  './games/pelea/fighters/mikati/pierna_adelante.png',
+  './games/pelea/fighters/mikati/pierna_atras.png',
+  './games/pelea/fighters/romboman/cabeza.png',
+  './games/pelea/fighters/romboman/cuerpo.png',
+  './games/pelea/fighters/romboman/mano_adelante.png',
+  './games/pelea/fighters/romboman/mano_atras.png',
+  './games/pelea/fighters/romboman/pie_adelante.png',
+  './games/pelea/fighters/romboman/pie_atras.png',
+  './games/pelea/fighters/sword-men/brazo_adelante.png',
+  './games/pelea/fighters/sword-men/brazo_atras.png',
+  './games/pelea/fighters/sword-men/cabeza.png',
+  './games/pelea/fighters/sword-men/cuerpo.png',
+  './games/pelea/fighters/sword-men/pie_adelante.png',
+  './games/pelea/fighters/sword-men/pie_atras.png',
+  './games/pelea/fighters/sword-men/pierna_adelante.png',
+  './games/pelea/fighters/sword-men/pierna_atras.png',
+  './games/pelea/fonts/bowlby-one.woff2',
+  './games/pelea/fonts/patrick-hand.woff2',
+  './games/pelea/fonts/rubik.woff2',
   './icons/launcher-180.png',
   './icons/launcher-192.png',
   './icons/launcher-512.png',
@@ -22,7 +51,8 @@ const CORE_ASSETS = [
   './icons/target-180.png',
   './icons/sequence-180.png',
   './icons/trivoca-180.png',
-  './icons/imposter-180.png'
+  './icons/imposter-180.png',
+  './icons/pelea-180.png'
 ];
 
 self.addEventListener('install', (event) => {

@@ -44,6 +44,12 @@
         <div class="name">Trivoca Kids</div>
         <div class="desc">Guess the 4- or 5-letter word, with 💡 hints. Português, Español, English.</div>
       </a>
+      <a class="tile" href="games/pelea.html" style="--c1: #f08a4b; --c2: #6b4fa0;">
+        <span class="best" data-best="pelea" hidden></span>
+        <div class="glyph">🥊</div>
+        <div class="name">Pelea de Papel</div>
+        <div class="desc">Paper fighters drawn by the kids. Pick one and fight the computer!</div>
+      </a>
       <a class="tile" href="games/imposter.html" style="--c1: #ff5050; --c2: #6a1818;">
         <div class="glyph">🕵️</div>
         <div class="name">Imposter</div>
@@ -65,7 +71,8 @@
         return b == null ? null : `🏆 ${b} moves`;
       },
       target: () => { const b = Kit.best('target'); return b ? `🏆 ${b}` : null; },
-      sequence: () => { const b = Kit.best('sequence'); return b ? `🏆 Round ${b}` : null; }
+      sequence: () => { const b = Kit.best('sequence'); return b ? `🏆 Round ${b}` : null; },
+      pelea: () => { const w = Kit.store.get('pelea:wins', 0); return w ? `🏆 ${w} ${w === 1 ? 'win' : 'wins'}` : null; }
     };
     document.querySelectorAll('[data-best]').forEach((el) => {
       const text = BESTS[el.dataset.best]();
