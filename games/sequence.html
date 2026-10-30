@@ -4,153 +4,227 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <title>Color Sequence</title>
-  <meta name="theme-color" content="#F2A93B" />
+  <meta name="theme-color" content="#1a1a2e" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Sequence" />
   <link rel="apple-touch-icon" href="../icons/sequence-180.png" />
   <link rel="stylesheet" href="../styles.css" />
   <style>
-    .pad-grid {
+    body { --game: #F2A93B; --game-2: #c8821e; }
+    main { align-items: center; justify-content: center; gap: 18px; }
+    .status { font-size: clamp(1.4rem, 4vw, 2rem); font-weight: 800; text-align: center; min-height: 1.4em; }
+    .status.muted { color: var(--muted); }
+    .dots { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; min-height: 14px; max-width: 520px; }
+    .dots i { width: 14px; height: 14px; border-radius: 50%; background: rgba(255, 255, 255, 0.15); transition: background 0.15s; }
+    .dots i.done { background: var(--game); }
+
+    .simon {
+      position: relative;
+      width: var(--board, min(86vmin, 560px));
+      aspect-ratio: 1;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      width: min(86vmin, 520px);
-      aspect-ratio: 1 / 1;
+      gap: 16px;
     }
     .pad {
-      border-radius: 22px;
+      border: 0;
+      padding: 0;
       cursor: pointer;
-      opacity: 0.55;
-      transition: opacity 120ms ease, transform 80ms ease;
-      box-shadow: inset 0 -6px 14px rgba(0,0,0,0.25);
+      color: var(--c);
+      background: var(--c);
+      filter: brightness(0.62) saturate(0.85);
+      box-shadow: inset 0 -10px 20px rgba(0, 0, 0, 0.28), 0 6px 0 rgba(0, 0, 0, 0.25);
+      transition: filter 100ms ease, transform 80ms ease;
+      display: grid;
+      place-items: center;
     }
-    .pad.lit { opacity: 1; transform: scale(0.97); box-shadow: 0 0 30px currentColor inset, 0 0 24px currentColor; }
-    .pad[data-c="0"] { background: #2EB872; color: #2EB872; }
-    .pad[data-c="1"] { background: #E85D75; color: #E85D75; }
-    .pad[data-c="2"] { background: #F2A93B; color: #F2A93B; }
-    .pad[data-c="3"] { background: #5B5BD6; color: #5B5BD6; }
-    .pads-disabled .pad { pointer-events: none; }
-    .status {
-      font-size: 1.2rem;
-      color: var(--muted);
-      min-height: 1.6em;
-      text-align: center;
+    .pad svg { width: 26%; height: 26%; fill: rgba(255, 255, 255, 0.45); }
+    .pad:nth-child(1) { --c: #2EB872; border-radius: 100% 24px 24px 24px; }
+    .pad:nth-child(2) { --c: #E85D75; border-radius: 24px 100% 24px 24px; }
+    .pad:nth-child(3) { --c: #F2A93B; border-radius: 24px 24px 24px 100%; }
+    .pad:nth-child(4) { --c: #5B5BD6; border-radius: 24px 24px 100% 24px; }
+    .pad.lit {
+      filter: brightness(1.15) saturate(1.1);
+      transform: scale(0.97);
+      box-shadow: 0 0 40px var(--c), inset 0 0 30px rgba(255, 255, 255, 0.45);
     }
-    .status b { color: var(--fg); }
+    .pad.lit svg { fill: rgba(255, 255, 255, 0.95); }
+    .locked .pad { pointer-events: none; }
+    .simon.wrong { animation: shake 0.45s ease; }
+
+    .hub {
+      position: absolute;
+      left: 50%; top: 50%;
+      width: 30%; aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: var(--bg);
+      border: 8px solid var(--bg-2);
+      display: grid; place-items: center; align-content: center;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      pointer-events: none;
+    }
+    .hub .lbl { font-size: clamp(0.7rem, 1.8vmin, 0.95rem); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .hub .num { font-size: clamp(2rem, 7vmin, 3.4rem); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
   </style>
 </head>
 <body>
-  <header class="app">
-    <a class="back" href="../index.html">← Back</a>
+  <header class="topbar">
+    <a class="back-btn" href="../index.html" aria-label="Back to games"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></a>
     <h1>🎵 Sequence</h1>
-    <div class="score"><span>Round<b id="round">0</b></span></div>
-  </header>
-  <main class="center-stage">
-    <div class="status" id="status">Press start to begin.</div>
-    <div class="pad-grid pads-disabled" id="pads">
-      <div class="pad" data-c="0"></div>
-      <div class="pad" data-c="1"></div>
-      <div class="pad" data-c="2"></div>
-      <div class="pad" data-c="3"></div>
+    <div class="stats">
+      <div class="stat"><span class="lbl">Best</span><span class="val" id="best">–</span></div>
     </div>
-    <button class="primary" id="start">Start</button>
+  </header>
+  <main id="main">
+    <div class="status muted" id="status" aria-live="polite">Watch the colors, then copy them!</div>
+    <div class="simon locked" id="simon">
+      <button class="pad" aria-label="Green circle"><svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="5"/></svg></button>
+      <button class="pad" aria-label="Pink triangle"><svg viewBox="0 0 10 10"><path d="M5 0l5 9.5H0z"/></svg></button>
+      <button class="pad" aria-label="Orange square"><svg viewBox="0 0 10 10"><rect width="10" height="10" rx="1.5"/></svg></button>
+      <button class="pad" aria-label="Blue star"><svg viewBox="0 0 10 10"><path d="M5 0l1.5 3.3 3.5.4-2.6 2.4.7 3.6L5 7.9 1.9 9.7l.7-3.6L0 3.7l3.5-.4z"/></svg></button>
+      <div class="hub"><span class="lbl">Round</span><span class="num" id="round">0</span></div>
+    </div>
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <button class="btn big" id="start">▶ Start</button>
   </main>
 
+  <script src="../kit.js"></script>
   <script>
-    const pads = document.getElementById('pads');
-    const padEls = pads.querySelectorAll('.pad');
-    const statusEl = document.getElementById('status');
-    const roundEl = document.getElementById('round');
-    const startBtn = document.getElementById('start');
+    const $ = (id) => document.getElementById(id);
+    const simon = $('simon');
+    const pads = [...simon.querySelectorAll('.pad')];
+    const statusEl = $('status');
 
-    // WebAudio: simple tones per color so it feels like Simon.
-    let audioCtx;
+    // WebAudio: one note per color so it feels like Simon.
     const FREQS = [329.6, 261.6, 392.0, 220.0]; // E, C, G, A
-
-    function tone(i, ms = 350) {
+    let audioCtx;
+    function audio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return audioCtx;
+    }
+    function tone(freq, ms, type = 'sine', vol = 0.25) {
       try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        o.type = 'sine';
-        o.frequency.value = FREQS[i];
+        const ctx = audio();
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = type;
+        o.frequency.value = freq;
         g.gain.value = 0.0001;
-        o.connect(g).connect(audioCtx.destination);
-        const now = audioCtx.currentTime;
-        g.gain.exponentialRampToValueAtTime(0.25, now + 0.02);
+        o.connect(g).connect(ctx.destination);
+        const now = ctx.currentTime;
+        g.gain.exponentialRampToValueAtTime(vol, now + 0.02);
         g.gain.exponentialRampToValueAtTime(0.0001, now + ms / 1000);
         o.start(now);
         o.stop(now + ms / 1000 + 0.05);
-      } catch (e) { /* noop */ }
+      } catch (e) { /* no sound is fine */ }
     }
 
-    let sequence = [];
-    let userIdx = 0;
-    let round = 0;
-    let playing = false;
+    let sequence = [], userIdx = 0, round = 0, playing = false;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-    function flash(i, ms = 380) {
-      const el = padEls[i];
-      el.classList.add('lit');
-      tone(i, ms);
-      return new Promise((res) => setTimeout(() => {
-        el.classList.remove('lit');
-        setTimeout(res, 140);
-      }, ms));
+    function setStatus(text, muted) { statusEl.textContent = text; statusEl.classList.toggle('muted', !!muted); }
+    function renderBest() { const b = Kit.best('sequence'); $('best').textContent = b == null ? '–' : b; }
+    function renderDots() {
+      $('dots').innerHTML = sequence.map((_, i) => `<i class="${i < userIdx ? 'done' : ''}"></i>`).join('');
+    }
+
+    // Board fits between the status line and the button, in both orientations.
+    function layout() {
+      const m = $('main');
+      const free = m.clientHeight - statusEl.offsetHeight - $('dots').offsetHeight - $('start').offsetHeight - 18 * 3 - 24;
+      const size = Math.max(220, Math.min(m.clientWidth - 8, free, 600));
+      simon.style.setProperty('--board', size + 'px');
+    }
+
+    async function flash(i, ms) {
+      pads[i].classList.add('lit');
+      tone(FREQS[i], ms);
+      await wait(ms);
+      pads[i].classList.remove('lit');
     }
 
     async function playSequence() {
-      pads.classList.add('pads-disabled');
-      statusEl.innerHTML = `Watch <b>round ${round}</b>…`;
-      await new Promise((r) => setTimeout(r, 600));
+      simon.classList.add('locked');
+      setStatus('Watch… 👀', true);
+      renderDots();
+      await wait(700);
+      // Gets a little quicker as the rounds go up.
+      const on = Math.max(230, 430 - round * 15), off = Math.max(90, 160 - round * 5);
       for (const i of sequence) {
-        await flash(i);
+        if (!playing) return;
+        await flash(i, on);
+        await wait(off);
       }
-      statusEl.textContent = 'Your turn!';
       userIdx = 0;
-      pads.classList.remove('pads-disabled');
+      setStatus('Your turn! 👆');
+      simon.classList.remove('locked');
     }
 
     function nextRound() {
       round++;
-      roundEl.textContent = round;
+      $('round').textContent = round;
       sequence.push(Math.floor(Math.random() * 4));
       playSequence();
     }
 
     function gameOver() {
       playing = false;
-      pads.classList.add('pads-disabled');
-      statusEl.innerHTML = `❌ Game over. You reached round <b>${round}</b>.`;
-      startBtn.textContent = 'Play again';
-      startBtn.style.display = '';
+      simon.classList.add('locked');
+      Kit.pulse(simon, 'wrong');
+      tone(110, 450, 'sawtooth', 0.15);
+      const reached = round - 1; // rounds fully completed
+      const { best, isNew } = Kit.record('sequence', reached);
+      renderBest();
+      setStatus('Oops!', true);
+      setTimeout(() => {
+        if (isNew) Kit.celebrate();
+        Kit.dialog({
+          emoji: reached >= 10 ? '🤩' : reached >= 5 ? '😎' : '🙈',
+          title: 'Oops, wrong color!',
+          html: `<p>You remembered <b>${reached}</b> round${reached === 1 ? '' : 's'}.</p><p>Best: <b>${best}</b></p>`,
+          badge: isNew ? '🏆 New best!' : '',
+          actions: [
+            { label: 'Play again', onClick: start },
+            { label: 'Home', ghost: true, onClick: () => { location.href = '../index.html'; } }
+          ]
+        });
+        $('start').hidden = false;
+        $('start').textContent = '▶ Play again';
+        layout();
+      }, 650);
     }
 
-    padEls.forEach((el) => {
-      el.addEventListener('pointerdown', async () => {
-        if (!playing) return;
-        const i = Number(el.dataset.c);
-        await flash(i, 240);
-        if (sequence[userIdx] !== i) return gameOver();
+    pads.forEach((el, i) => {
+      el.addEventListener('pointerdown', async (e) => {
+        e.preventDefault();
+        if (!playing || simon.classList.contains('locked')) return;
+        if (sequence[userIdx] !== i) { pads[i].classList.add('lit'); setTimeout(() => pads[i].classList.remove('lit'), 250); return gameOver(); }
         userIdx++;
-        if (userIdx === sequence.length) {
-          pads.classList.add('pads-disabled');
-          statusEl.innerHTML = `✅ Nice! Get ready…`;
-          setTimeout(nextRound, 700);
+        renderDots();
+        const done = userIdx === sequence.length;
+        if (done) simon.classList.add('locked');
+        await flash(i, 220);
+        if (done) {
+          setStatus(['Nice! ✨', 'Great! 🎉', 'Awesome! 🌟', 'Super! 💪'][round % 4]);
+          setTimeout(nextRound, 650);
         }
       });
     });
 
-    startBtn.addEventListener('click', () => {
+    function start() {
+      try { audio().resume(); } catch (e) {}
       sequence = []; userIdx = 0; round = 0;
-      roundEl.textContent = '0';
       playing = true;
-      startBtn.style.display = 'none';
-      // unlock audio
-      try { (audioCtx || new (window.AudioContext || window.webkitAudioContext)()).resume(); } catch(e) {}
+      $('start').hidden = true;
+      layout();
       nextRound();
-    });
+    }
+
+    $('start').addEventListener('click', start);
+    window.addEventListener('resize', layout);
+    renderBest();
+    layout();
   </script>
 </body>
 </html>

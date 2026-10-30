@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <title>Kids Games</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="theme-color" content="#5B5BD6" />
+  <meta name="theme-color" content="#1a1a2e" />
   <!-- iOS PWA hints -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -15,43 +15,81 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="app">
+  <header class="home-head">
     <h1>🎮 Kids Games</h1>
+    <p id="greeting">Pick a game!</p>
   </header>
   <main>
     <div class="tile-grid">
-      <a class="tile" href="games/memory.html" style="background: linear-gradient(160deg, #E85D75, #b03d56);">
+      <a class="tile" href="games/memory.html" style="--c1: #f07088; --c2: #b03d56;">
+        <span class="best" data-best="memory" hidden></span>
         <div class="glyph">🧠</div>
         <div class="name">Memory Match</div>
-        <div class="desc">Flip cards and find matching pairs.</div>
+        <div class="desc">Flip cards and find the matching pairs.</div>
       </a>
-      <a class="tile" href="games/target.html" style="background: linear-gradient(160deg, #2EB872, #1f8a55);">
+      <a class="tile" href="games/target.html" style="--c1: #3fcf85; --c2: #1f8a55;">
+        <span class="best" data-best="target" hidden></span>
         <div class="glyph">🎯</div>
         <div class="name">Tap the Target</div>
-        <div class="desc">Tap targets before they vanish.</div>
+        <div class="desc">Tap the green targets fast — dodge the bombs.</div>
       </a>
-      <a class="tile" href="games/sequence.html" style="background: linear-gradient(160deg, #F2A93B, #c8821e);">
+      <a class="tile" href="games/sequence.html" style="--c1: #f7b955; --c2: #c8821e;">
+        <span class="best" data-best="sequence" hidden></span>
         <div class="glyph">🎵</div>
         <div class="name">Color Sequence</div>
-        <div class="desc">Repeat the pattern, one more each round.</div>
+        <div class="desc">Watch, listen, repeat. One more every round.</div>
       </a>
-      <a class="tile" href="games/trivoca.html" style="background: linear-gradient(160deg, #2a9a74, #1f7a5c);">
-        <div class="glyph">🟩</div>
+      <a class="tile" href="games/trivoca.html" style="--c1: #2fae82; --c2: #17694e;">
+        <div class="glyph">🔤</div>
         <div class="name">Trivoca Kids</div>
-        <div class="desc">Guess the 4- or 5-letter word, with 💡 hints — Português, Español, English.</div>
+        <div class="desc">Guess the 4- or 5-letter word, with 💡 hints. Português, Español, English.</div>
       </a>
-      <a class="tile" href="games/imposter.html" style="background: linear-gradient(160deg, #ff3c3c, #6a1818);">
+      <a class="tile" href="games/imposter.html" style="--c1: #ff5050; --c2: #6a1818;">
         <div class="glyph">🕵️</div>
         <div class="name">Imposter</div>
         <div class="desc">Pass-the-iPad party game with friends.</div>
       </a>
     </div>
-    <p class="banner" style="margin-top: 28px;">
-      Tip: tap the share icon in Safari and choose <b>Add to Home Screen</b> to install. Works offline after the first visit.
+    <p class="banner" id="installTip" hidden>
+      <span>📲 Tap the share icon in Safari and choose <b>Add to Home Screen</b> to install. Works offline after the first visit.</span>
+      <button id="hideTip" aria-label="Hide tip">✕</button>
     </p>
   </main>
+  <script src="kit.js"></script>
   <script>
+    // Best scores on the tiles.
+    const BESTS = {
+      memory: () => {
+        const size = Kit.store.get('memory:size', '4x4');
+        const b = Kit.best('memory:' + size);
+        return b == null ? null : `🏆 ${b} moves`;
+      },
+      target: () => { const b = Kit.best('target'); return b ? `🏆 ${b}` : null; },
+      sequence: () => { const b = Kit.best('sequence'); return b ? `🏆 Round ${b}` : null; }
+    };
+    document.querySelectorAll('[data-best]').forEach((el) => {
+      const text = BESTS[el.dataset.best]();
+      if (text) { el.textContent = text; el.hidden = false; }
+    });
+
+    const h = new Date().getHours();
+    document.getElementById('greeting').textContent =
+      (h < 12 ? 'Good morning!' : h < 18 ? 'Good afternoon!' : 'Good evening!') + ' Pick a game.';
+
+    // Install tip: only in the browser, until dismissed.
+    const installed = navigator.standalone || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+    const tip = document.getElementById('installTip');
+    if (!installed && !Kit.store.get('tipHidden', false)) tip.hidden = false;
+    document.getElementById('hideTip').addEventListener('click', () => { tip.hidden = true; Kit.store.set('tipHidden', true); });
+
+    // Offline support. When a new version takes over, reload the launcher once
+    // so the update shows right away.
     if ('serviceWorker' in navigator) {
+      const hadController = !!navigator.serviceWorker.controller;
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (hadController && !reloaded) { reloaded = true; location.reload(); }
+      });
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').catch(console.error);
       });

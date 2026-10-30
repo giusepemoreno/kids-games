@@ -11,7 +11,8 @@ kids-games/
 ├── index.html              # Launcher — the "app" home screen
 ├── manifest.webmanifest    # PWA manifest (installable metadata)
 ├── sw.js                   # Service worker (offline cache)
-├── styles.css              # Shared styles
+├── styles.css              # Shared look: top bar, buttons, pickers, dialogs
+├── kit.js                  # Shared helpers: best scores, end-of-game dialog, confetti
 ├── icons/                  # 180/192/512 PNG icons (one set per game)
 ├── generate_icons.py       # Re-run with PIL to regenerate icons
 ├── tools/trivoca_kids_words.py  # Kid word lists + hints; rebuilds Trivoca's word data
@@ -23,9 +24,10 @@ kids-games/
     └── imposter.html       # Imposter (pass-the-iPad party game)
 ```
 
-Each game is one self-contained HTML file. Add a new game by dropping a new
-`games/<name>.html` and adding a tile in `index.html` plus an entry in
-`sw.js` (the `CORE_ASSETS` list) so it works offline.
+Each game is one HTML file that uses the shared `styles.css` and `kit.js`.
+Add a new game by dropping a new `games/<name>.html` and adding a tile in
+`index.html` plus an entry in `sw.js` (the `CORE_ASSETS` list) so it works
+offline.
 
 ## Try it locally
 
@@ -78,13 +80,17 @@ Screen from there. Each has its own apple-touch-icon and title.
 
 ## Updating
 
-Bump `CACHE_VERSION` in `sw.js` whenever you change cached files. Old iPads
-will pick up the new version next time they have network.
+The app loads fresh files whenever the iPad is online and falls back to the
+saved copy offline, so updates show up on the next launch. Bump
+`CACHE_VERSION` in `sw.js` when you add or rename files so the offline copy
+is rebuilt.
 
 ## Adding more games
 
-1. Copy one of the files in `games/` as a template.
-2. Update `<title>`, theme color, apple-touch-icon, and the in-page header.
+1. Copy `games/memory.html` as a template (top bar, stats, `Kit.dialog`,
+   `Kit.record` for best scores).
+2. Update `<title>`, the `--game` / `--game-2` colors on `<body>`,
+   apple-touch-icon, and the top bar.
 3. Add a tile in `index.html`.
 4. Add the file to `CORE_ASSETS` in `sw.js` and bump `CACHE_VERSION`.
 5. (Optional) Add a row to `GAMES` in `generate_icons.py` and re-run it to
@@ -97,10 +103,12 @@ will pick up the new version next time they have network.
 
 - iPad Safari PWAs do not get push notifications, GameCenter, or full
   background audio. Fine for offline minigames; not a full native runtime.
-- The included icons are colored rounded squares with a circle (the emoji
-  font path didn't render on this machine). Drop in nicer PNGs anytime —
-  same filenames, same sizes.
+- Icons are drawn by `generate_icons.py` with the system emoji font
+  (Apple Color Emoji or Noto Color Emoji); without one it falls back to a
+  plain circle.
+- Best scores and the Imposter roster are saved on each iPad (localStorage).
 - Everything is plain HTML/CSS/JS, no build step, no dependencies.
+  (Imposter loads two web fonts when online and falls back to built-in ones.)
 
 ## Trivoca Kids word lists
 
